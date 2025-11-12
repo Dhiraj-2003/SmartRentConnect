@@ -262,7 +262,14 @@ export const watchmanAPI = {
 export const enhancedAdminAPI = {
   ...adminAPI,
   
-  // Owner Verification Management
+  // Owner Management
+  getAllOwners: (params?: {
+    page?: number;
+    size?: number;
+    sortBy?: string;
+    sortDir?: string;
+  }) => api.get('/admin/owners', { params }),
+  
   getPendingOwnerVerifications: () => api.get('/admin/owners/pending-verification'),
   
   getOwnerDetails: (ownerId: number) => api.get(`/admin/owners/${ownerId}`),

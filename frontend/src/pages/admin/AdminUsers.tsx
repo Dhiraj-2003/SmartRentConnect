@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { adminAPI } from '@/lib/api';
+import { enhancedAdminAPI } from '@/lib/api';
 import { 
   Users,
   Search,
@@ -33,19 +33,33 @@ interface Owner {
   id: number;
   username: string;
   email: string;
-  phone: string;
+  phoneNumber: string;
   fullName: string;
   address: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  businessName?: string;
+  gstNumber?: string;
+  dateOfBirth?: string;
   joinDate: string;
   isVerified: boolean;
+  verificationStatus: string;
+  rejectionReason?: string;
   profileImage?: string;
-  documents: {
-    aadhar?: string;
-    pan?: string;
-  };
+  aadharCardImage?: string;
+  panCardImage?: string;
   totalProperties: number;
   activeRentals: number;
   totalRevenue: number;
+  status: string;
+  isProfileComplete: boolean;
+  // For backward compatibility
+  phone?: string;
+  documents?: {
+    aadhar?: string;
+    pan?: string;
+  };
 }
 
 export const AdminUsers: React.FC = () => {
@@ -59,6 +73,11 @@ export const AdminUsers: React.FC = () => {
   const [itemsPerPage] = useState(10);
   const [selectedOwner, setSelectedOwner] = useState<Owner | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentDoc, setCurrentDoc] = useState<{url: string; type: 'image' | 'pdf'; title: string} | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [ownerToReject, setOwnerToReject] = useState<{id: number; name: string} | null>(null);
   const [stats, setStats] = useState({
     totalOwners: 0,
     verifiedOwners: 0,
@@ -72,12 +91,23 @@ export const AdminUsers: React.FC = () => {
       id: 1,
       username: 'rajesh_kumar',
       email: 'rajesh.kumar@email.com',
+      phoneNumber: '+91 9876543210',
       phone: '+91 9876543210',
       fullName: 'Rajesh Kumar',
       address: 'Koramangala, Bangalore',
+      city: 'Bangalore',
+      state: 'Karnataka',
+      pincode: '560034',
+      businessName: 'Kumar Properties',
+      gstNumber: 'GST123456789',
       joinDate: '2024-01-15',
       isVerified: true,
+      verificationStatus: 'VERIFIED',
+      status: 'ACTIVE',
+      isProfileComplete: true,
       profileImage: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+      aadharCardImage: 'https://example.com/aadhar1.jpg',
+      panCardImage: 'https://example.com/pan1.jpg',
       documents: {
         aadhar: 'https://example.com/aadhar1.jpg',
         pan: 'https://example.com/pan1.jpg'
@@ -90,12 +120,22 @@ export const AdminUsers: React.FC = () => {
       id: 2,
       username: 'priya_sharma',
       email: 'priya.sharma@email.com',
+      phoneNumber: '+91 9876543211',
       phone: '+91 9876543211',
       fullName: 'Priya Sharma',
       address: 'Whitefield, Bangalore',
+      city: 'Bangalore',
+      state: 'Karnataka',
+      pincode: '560066',
+      businessName: 'Sharma Rentals',
       joinDate: '2024-02-20',
       isVerified: false,
+      verificationStatus: 'PENDING',
+      status: 'ACTIVE',
+      isProfileComplete: true,
       profileImage: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+      aadharCardImage: 'https://example.com/aadhar2.jpg',
+      panCardImage: 'https://example.com/pan2.jpg',
       documents: {
         aadhar: 'https://example.com/aadhar2.jpg',
         pan: 'https://example.com/pan2.jpg'
@@ -108,12 +148,22 @@ export const AdminUsers: React.FC = () => {
       id: 3,
       username: 'amit_patel',
       email: 'amit.patel@email.com',
+      phoneNumber: '+91 9876543212',
       phone: '+91 9876543212',
       fullName: 'Amit Patel',
       address: 'HSR Layout, Bangalore',
+      city: 'Bangalore',
+      state: 'Karnataka',
+      pincode: '560102',
+      businessName: 'Patel Properties',
       joinDate: '2024-03-10',
       isVerified: true,
+      verificationStatus: 'VERIFIED',
+      status: 'ACTIVE',
+      isProfileComplete: true,
       profileImage: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+      aadharCardImage: 'https://example.com/aadhar3.jpg',
+      panCardImage: 'https://example.com/pan3.jpg',
       documents: {
         aadhar: 'https://example.com/aadhar3.jpg',
         pan: 'https://example.com/pan3.jpg'
@@ -126,36 +176,57 @@ export const AdminUsers: React.FC = () => {
 
   useEffect(() => {
     loadOwners();
-  }, []);
+  }, [currentPage, sortBy, sortOrder]);
 
   const loadOwners = async () => {
     try {
       setLoading(true);
-      // In real app, this would be: const response = await adminAPI.getAllOwners();
-      // For now, using mock data
-      setTimeout(() => {
-        setOwners(mockOwners);
-        setStats({
-          totalOwners: mockOwners.length,
-          verifiedOwners: mockOwners.filter(o => o.isVerified).length,
-          pendingVerification: mockOwners.filter(o => !o.isVerified).length,
-          activeProperties: mockOwners.reduce((sum, o) => sum + o.totalProperties, 0)
-        });
-        setLoading(false);
-      }, 1000);
+      const response = await enhancedAdminAPI.getAllOwners({
+        page: currentPage - 1,
+        size: itemsPerPage,
+        sortBy: sortBy === 'joinDate' ? 'id' : sortBy,
+        sortDir: sortOrder
+      });
+      
+      const ownersData = response.data.content.map((owner: any) => ({
+        ...owner,
+        phone: owner.phoneNumber,
+        joinDate: owner.joinDate || new Date().toISOString(),
+        documents: {
+          aadhar: owner.aadharCardImage,
+          pan: owner.panCardImage
+        }
+      }));
+      
+      setOwners(ownersData);
+      setStats({
+        totalOwners: response.data.totalElements,
+        verifiedOwners: ownersData.filter((o: Owner) => o.isVerified).length,
+        pendingVerification: ownersData.filter((o: Owner) => !o.isVerified).length,
+        activeProperties: ownersData.reduce((sum: number, o: Owner) => sum + o.totalProperties, 0)
+      });
     } catch (error: any) {
       console.error('Failed to load owners:', error);
       toast.error('Failed to load owners');
+      // Fallback to mock data if API fails
+      setOwners(mockOwners);
+      setStats({
+        totalOwners: mockOwners.length,
+        verifiedOwners: mockOwners.filter(o => o.isVerified).length,
+        pendingVerification: mockOwners.filter(o => !o.isVerified).length,
+        activeProperties: mockOwners.reduce((sum, o) => sum + o.totalProperties, 0)
+      });
+    } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyOwner = async (ownerId: number, ownerName: string) => {
     try {
-      // In real app: await adminAPI.verifyOwner(ownerId);
+      await enhancedAdminAPI.verifyOwner(ownerId);
       setOwners(prevOwners => 
         prevOwners.map(owner => 
-          owner.id === ownerId ? { ...owner, isVerified: true } : owner
+          owner.id === ownerId ? { ...owner, isVerified: true, verificationStatus: 'VERIFIED' } : owner
         )
       );
       setStats(prev => ({
@@ -165,10 +236,52 @@ export const AdminUsers: React.FC = () => {
       }));
       toast.success(`${ownerName} has been verified successfully!`);
       setShowDetailModal(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to verify owner:', error);
-      toast.error('Failed to verify owner. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to verify owner. Please try again.');
     }
+  };
+
+  const handleRejectOwner = (ownerId: number, ownerName: string) => {
+    setOwnerToReject({ id: ownerId, name: ownerName });
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
+
+  const confirmRejectOwner = async () => {
+    if (!ownerToReject || !rejectionReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
+
+    try {
+      await enhancedAdminAPI.rejectOwnerVerification(ownerToReject.id, rejectionReason.trim());
+      setOwners(prevOwners => 
+        prevOwners.map(owner => 
+          owner.id === ownerToReject.id 
+            ? { ...owner, isVerified: false, verificationStatus: 'REJECTED', rejectionReason: rejectionReason.trim() } 
+            : owner
+        )
+      );
+      toast.success(`${ownerToReject.name}'s verification has been rejected.`);
+      setShowDetailModal(false);
+      setRejectDialogOpen(false);
+      setRejectionReason('');
+      setOwnerToReject(null);
+    } catch (error: any) {
+      console.error('Failed to reject owner:', error);
+      toast.error(error.response?.data?.message || 'Failed to reject owner verification.');
+    }
+  };
+
+  const handleViewDocument = (url: string, title: string) => {
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    setCurrentDoc({
+      url,
+      type: isPdf ? 'pdf' : 'image',
+      title
+    });
+    setViewerOpen(true);
   };
 
   const handleSort = (field: keyof Owner) => {
@@ -416,7 +529,7 @@ export const AdminUsers: React.FC = () => {
                           <div>
                             <div className="text-sm font-medium text-gray-900">{owner.fullName}</div>
                             <div className="text-sm text-gray-500">{owner.email}</div>
-                            <div className="text-xs text-gray-400">{owner.phone}</div>
+                            <div className="text-xs text-gray-400">{owner.phoneNumber || owner.phone}</div>
                           </div>
                         </div>
                       </td>
@@ -433,9 +546,15 @@ export const AdminUsers: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <Badge 
                           variant={owner.isVerified ? "default" : "secondary"}
-                          className={owner.isVerified ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"}
+                          className={
+                            owner.verificationStatus === 'VERIFIED' 
+                              ? "bg-green-100 text-green-800" 
+                              : owner.verificationStatus === 'REJECTED'
+                              ? "bg-red-100 text-red-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }
                         >
-                          {owner.isVerified ? 'Verified' : 'Pending'}
+                          {owner.verificationStatus || (owner.isVerified ? 'Verified' : 'Pending')}
                         </Badge>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
@@ -526,7 +645,7 @@ export const AdminUsers: React.FC = () => {
                       <label className="text-sm font-medium text-gray-500">Phone</label>
                       <p className="text-sm text-gray-900 flex items-center">
                         <Phone className="w-4 h-4 mr-1" />
-                        {selectedOwner.phone}
+                        {selectedOwner.phoneNumber || selectedOwner.phone}
                       </p>
                     </div>
                     <div>
@@ -543,6 +662,18 @@ export const AdminUsers: React.FC = () => {
                         {new Date(selectedOwner.joinDate).toLocaleDateString()}
                       </p>
                     </div>
+                    {selectedOwner.businessName && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">Business Name</label>
+                        <p className="text-sm text-gray-900">{selectedOwner.businessName}</p>
+                      </div>
+                    )}
+                    {selectedOwner.gstNumber && (
+                      <div>
+                        <label className="text-sm font-medium text-gray-500">GST Number</label>
+                        <p className="text-sm text-gray-900">{selectedOwner.gstNumber}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -583,7 +714,7 @@ export const AdminUsers: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(selectedOwner.documents.aadhar, '_blank')}
+                          onClick={() => handleViewDocument(selectedOwner.documents.aadhar!, 'Aadhar Card')}
                           className="w-full"
                         >
                           View Full Document
@@ -607,7 +738,7 @@ export const AdminUsers: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(selectedOwner.documents.pan, '_blank')}
+                          onClick={() => handleViewDocument(selectedOwner.documents.pan!, 'PAN Card')}
                           className="w-full"
                         >
                           View Full Document
@@ -621,54 +752,164 @@ export const AdminUsers: React.FC = () => {
               </div>
 
               {/* Verification Status */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                <div>
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
                   <h4 className="font-medium">Verification Status</h4>
-                  <p className="text-sm text-gray-600">
-                    {selectedOwner.isVerified 
-                      ? 'This owner has been verified and can list properties'
-                      : 'This owner is pending verification and cannot list properties yet'
+                  <Badge 
+                    variant={selectedOwner.isVerified ? "default" : "secondary"}
+                    className={
+                      selectedOwner.verificationStatus === 'VERIFIED' 
+                        ? "bg-green-100 text-green-800" 
+                        : selectedOwner.verificationStatus === 'REJECTED'
+                        ? "bg-red-100 text-red-800"
+                        : "bg-yellow-100 text-yellow-800"
                     }
-                  </p>
+                  >
+                    {selectedOwner.verificationStatus === 'VERIFIED' ? (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Verified
+                      </>
+                    ) : selectedOwner.verificationStatus === 'REJECTED' ? (
+                      <>
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Rejected
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4 mr-1" />
+                        Pending
+                      </>
+                    )}
+                  </Badge>
                 </div>
-                <Badge 
-                  variant={selectedOwner.isVerified ? "default" : "secondary"}
-                  className={`${selectedOwner.isVerified 
-                    ? "bg-green-100 text-green-800" 
-                    : "bg-yellow-100 text-yellow-800"
-                  } text-lg px-4 py-2`}
-                >
-                  {selectedOwner.isVerified ? (
-                    <>
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Verified
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="w-4 h-4 mr-1" />
-                      Pending
-                    </>
-                  )}
-                </Badge>
+                <p className="text-sm text-gray-600">
+                  {selectedOwner.verificationStatus === 'VERIFIED'
+                    ? 'This owner has been verified and can list properties'
+                    : selectedOwner.verificationStatus === 'REJECTED'
+                    ? 'This owner\'s verification was rejected and cannot list properties'
+                    : 'This owner is pending verification and cannot list properties yet'
+                  }
+                </p>
+                {selectedOwner.verificationStatus === 'REJECTED' && selectedOwner.rejectionReason && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
+                    <h5 className="text-sm font-medium text-red-800 mb-1">Rejection Reason:</h5>
+                    <p className="text-sm text-red-700">{selectedOwner.rejectionReason}</p>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}
               <div className="flex items-center justify-between pt-4 border-t">
-                {!selectedOwner.isVerified && (
-                  <Button 
-                    onClick={() => handleVerifyOwner(selectedOwner.id, selectedOwner.fullName)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Shield className="w-4 h-4 mr-2" />
-                    Verify Owner
-                  </Button>
-                )}
+                <div className="flex space-x-2">
+                  {selectedOwner.verificationStatus === 'PENDING' && (
+                    <>
+                      <Button 
+                        onClick={() => handleVerifyOwner(selectedOwner.id, selectedOwner.fullName)}
+                        className="bg-green-600 hover:bg-green-700"
+                      >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Verify Owner
+                      </Button>
+                      <Button 
+                        onClick={() => handleRejectOwner(selectedOwner.id, selectedOwner.fullName)}
+                        variant="destructive"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  {selectedOwner.verificationStatus === 'REJECTED' && (
+                    <Button 
+                      onClick={() => handleVerifyOwner(selectedOwner.id, selectedOwner.fullName)}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Verify Owner
+                    </Button>
+                  )}
+                </div>
                 <Button variant="outline" onClick={() => setShowDetailModal(false)}>
                   Close
                 </Button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Document Viewer Modal */}
+      <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">{currentDoc?.title || 'Document Viewer'}</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {currentDoc?.type === 'pdf' ? (
+              <iframe 
+                src={currentDoc.url} 
+                className="w-full h-[70vh] border rounded"
+                title="Document Viewer"
+              />
+            ) : (
+              <img 
+                src={currentDoc?.url} 
+                alt="Document Preview" 
+                className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rejection Reason Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Reject Owner Verification</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              Please provide a reason for rejecting {ownerToReject?.name}'s verification. 
+              This will help the owner understand what needs to be corrected.
+            </p>
+            <div>
+              <Label htmlFor="rejectionReason">Rejection Reason</Label>
+              <textarea
+                id="rejectionReason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Please specify what documents or information need to be corrected..."
+                className="w-full mt-1 p-2 border border-gray-300 rounded-md resize-none"
+                rows={4}
+                maxLength={500}
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {rejectionReason.length}/500 characters
+              </p>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setRejectDialogOpen(false);
+                  setRejectionReason('');
+                  setOwnerToReject(null);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={confirmRejectOwner}
+                disabled={!rejectionReason.trim()}
+              >
+                <XCircle className="w-4 h-4 mr-2" />
+                Reject Verification
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

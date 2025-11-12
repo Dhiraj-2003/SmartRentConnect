@@ -113,9 +113,10 @@ public class OwnerService {
         boolean isProfileComplete = isProfileComplete(owner);
         owner.setIsProfileComplete(isProfileComplete);
 
-        // If profile was just completed, set verification status to pending
+        // If profile was just completed, set verification status to pending and clear rejection reason
         if (isProfileComplete && !owner.getIsVerified()) {
             owner.setVerificationStatus("PENDING");
+            owner.setRejectionReason(null); // Clear any previous rejection reason
         }
 
         Owner savedOwner = ownerRepository.save(owner);
@@ -157,6 +158,7 @@ public class OwnerService {
         dto.setIsProfileComplete(owner.getIsProfileComplete());
         dto.setIsVerified(owner.getIsVerified());
         dto.setVerificationStatus(owner.getVerificationStatus());
+        dto.setRejectionReason(owner.getRejectionReason());
         
         System.out.println("Generated URLs - Profile: " + dto.getProfileImage() + 
                           ", Aadhar: " + dto.getAadharCardImage() + 

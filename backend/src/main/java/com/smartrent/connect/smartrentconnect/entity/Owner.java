@@ -58,4 +58,7 @@ public class Owner extends User {
     @Column(name = "verification_status")
     @Builder.Default
     private String verificationStatus = "PENDING"; // PENDING, VERIFIED, REJECTED
+    
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason; // Reason for rejection if status is REJECTED
 }

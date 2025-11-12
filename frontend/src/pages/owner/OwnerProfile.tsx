@@ -3,6 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { 
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -41,6 +47,8 @@ interface OwnerProfileData {
   };
   isProfileComplete: boolean;
   isVerified: boolean;
+  verificationStatus?: string;
+  rejectionReason?: string;
 }
 
 export const OwnerProfile: React.FC = () => {
@@ -65,6 +73,8 @@ export const OwnerProfile: React.FC = () => {
     aadhar?: string;
     pan?: string;
   }>({});
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [currentDoc, setCurrentDoc] = useState<{url: string; type: 'image' | 'pdf'} | null>(null);
 
   useEffect(() => {
     loadProfile();
@@ -95,7 +105,9 @@ export const OwnerProfile: React.FC = () => {
           pan: profileData.panCardImage || storedUrls.panCardUrl || ''
         },
         isProfileComplete: profileData.isProfileComplete || false,
-        isVerified: profileData.isVerified || false
+        isVerified: profileData.isVerified || false,
+        verificationStatus: profileData.verificationStatus || 'PENDING',
+        rejectionReason: profileData.rejectionReason || undefined
       };
       
       console.log('Profile loaded successfully with file URLs');
@@ -148,6 +160,15 @@ export const OwnerProfile: React.FC = () => {
       setProfileData(prev => ({ ...prev, profileImage: file }));
       setProfileImagePreview(URL.createObjectURL(file));
     }
+  };
+
+  const handleViewDocument = (url: string) => {
+    const isPdf = url.toLowerCase().endsWith('.pdf');
+    setCurrentDoc({
+      url,
+      type: isPdf ? 'pdf' : 'image'
+    });
+    setViewerOpen(true);
   };
 
   const handleDocumentUpload = (type: 'aadhar' | 'pan', e: React.ChangeEvent<HTMLInputElement>) => {
@@ -329,6 +350,8 @@ export const OwnerProfile: React.FC = () => {
       setProfileData(prev => ({ 
         ...prev, 
         isProfileComplete: true,
+        verificationStatus: 'PENDING', // Reset to pending when resubmitting
+        rejectionReason: undefined, // Clear rejection reason
         profileImage: profileImageUrl,
         documents: {
           aadhar: aadharCardUrl,
@@ -417,7 +440,7 @@ export const OwnerProfile: React.FC = () => {
         </Alert>
       )}
 
-      {profileData.isProfileComplete && !profileData.isVerified && (
+      {profileData.isProfileComplete && !profileData.isVerified && profileData.verificationStatus !== 'REJECTED' && (
         <Alert className="mb-6 border-yellow-200 bg-yellow-50">
           <Shield className="h-4 w-4 text-yellow-600" />
           <AlertDescription className="text-yellow-800">
@@ -431,6 +454,24 @@ export const OwnerProfile: React.FC = () => {
           <CheckCircle className="h-4 w-4 text-green-600" />
           <AlertDescription className="text-green-800">
             <strong>Profile Verified:</strong> Your profile is complete and verified. You can now add properties!
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {profileData.verificationStatus === 'REJECTED' && profileData.rejectionReason && (
+        <Alert className="mb-6 border-red-200 bg-red-50">
+          <AlertTriangle className="h-4 w-4 text-red-600" />
+          <AlertDescription className="text-red-800">
+            <div>
+              <strong>Verification Rejected:</strong> Your profile verification was rejected by the admin.
+              <div className="mt-2 p-3 bg-red-100 border border-red-200 rounded-md">
+                <p className="text-sm font-medium text-red-800">Reason for rejection:</p>
+                <p className="text-sm text-red-700 mt-1">{profileData.rejectionReason}</p>
+              </div>
+              <p className="text-sm mt-2">
+                Please update your profile and documents according to the feedback above and resubmit for verification.
+              </p>
+            </div>
           </AlertDescription>
         </Alert>
       )}
@@ -621,7 +662,7 @@ export const OwnerProfile: React.FC = () => {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(documentPreviews.aadhar, '_blank')}
+                          onClick={() => handleViewDocument(documentPreviews.aadhar)}
                           className="flex-1"
                         >
                           View Full
@@ -677,7 +718,7 @@ export const OwnerProfile: React.FC = () => {
                           type="button"
                           variant="outline"
                           size="sm"
-                          onClick={() => window.open(documentPreviews.pan, '_blank')}
+                          onClick={() => handleViewDocument(documentPreviews.pan)}
                           className="flex-1"
                         >
                           View Full
@@ -792,6 +833,30 @@ export const OwnerProfile: React.FC = () => {
           </Button>
         </div>
       </div>
+
+      {/* Document Viewer Modal */}
+      <Dialog open={viewerOpen} onOpenChange={setViewerOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle className="text-xl">Document Viewer</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            {currentDoc?.type === 'pdf' ? (
+              <iframe 
+                src={currentDoc.url} 
+                className="w-full h-[70vh] border rounded"
+                title="Document Viewer"
+              />
+            ) : (
+              <img 
+                src={currentDoc?.url} 
+                alt="Document Preview" 
+                className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -22,4 +22,5 @@ public class OwnerProfileResponseDTO {
     private Boolean isProfileComplete;
     private Boolean isVerified;
     private String verificationStatus;
+    private String rejectionReason;
 }

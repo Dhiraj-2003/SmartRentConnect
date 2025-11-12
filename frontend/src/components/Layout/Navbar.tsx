@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/enhanced-button';
-import { ProfileModal } from '@/components/owner/ProfileModal';
 import { UserAvatar } from '@/components/ui/UserAvatar';
+import { ownerAPI } from '@/lib/api';
 import { 
   Home, 
   Building, 
@@ -22,7 +22,24 @@ import {
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [showProfileModal, setShowProfileModal] = useState(false);
+  const navigate = useNavigate();
+  const [ownerProfile, setOwnerProfile] = useState<any>(null);
+
+  // Fetch owner profile data if user is an owner
+  useEffect(() => {
+    const fetchOwnerProfile = async () => {
+      if (user?.role === 'OWNER') {
+        try {
+          const response = await ownerAPI.getProfile();
+          setOwnerProfile(response.data);
+        } catch (error) {
+          console.error('Failed to fetch owner profile:', error);
+        }
+      }
+    };
+
+    fetchOwnerProfile();
+  }, [user]);
 
   if (!user) return null;
 
@@ -63,6 +80,7 @@ export const Navbar: React.FC = () => {
 
   const navItems = getNavItems();
 
+
   return (
     <nav className="bg-card border-b border-border shadow-card">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -72,7 +90,7 @@ export const Navbar: React.FC = () => {
               <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center">
                 <Building className="w-5 h-5 text-primary-foreground" />
               </div>
-              <span className="text-xl font-bold text-foreground">SmartRent</span>
+              <span className="text-xl font-bold text-foreground">SmartRentConnect</span>
             </Link>
           </div>
 
@@ -102,10 +120,10 @@ export const Navbar: React.FC = () => {
             <div className="flex items-center space-x-2">
               <div className="flex items-center space-x-2">
                 <UserAvatar
-                  user={user}
+                  user={user.role === 'OWNER' && ownerProfile ? { ...user, profileImage: ownerProfile.profileImage } : user}
                   size="md"
                   showEditOverlay={user.role === 'OWNER'}
-                  onClick={user.role === 'OWNER' ? () => setShowProfileModal(true) : undefined}
+                  onClick={user.role === 'OWNER' ? () => navigate('/owner/profile') : undefined}
                 />
                 <span className="text-xs text-muted-foreground bg-accent px-2 py-1 rounded-full capitalize">
                   {user.role}
@@ -145,13 +163,6 @@ export const Navbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Profile Modal */}
-      {user.role === 'OWNER' && (
-        <ProfileModal 
-          isOpen={showProfileModal} 
-          onClose={() => setShowProfileModal(false)} 
-        />
-      )}
     </nav>
   );
 };

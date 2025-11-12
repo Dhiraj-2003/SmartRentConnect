@@ -54,12 +54,14 @@ interface PropertyListProps {
   limit?: number;
   showHeader?: boolean;
   onAddProperty?: () => void;
+  verificationStatus: 'incomplete' | 'pending' | 'verified';
 }
 
 export const PropertyList: React.FC<PropertyListProps> = ({
   limit,
   showHeader = true,
-  onAddProperty
+  onAddProperty,
+  verificationStatus
 }) => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,8 +69,10 @@ export const PropertyList: React.FC<PropertyListProps> = ({
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    loadProperties();
-  }, []);
+    if (verificationStatus === 'verified') {
+      loadProperties();
+    }
+  }, [verificationStatus]);
 
   const loadProperties = async () => {
     try {
@@ -214,21 +218,13 @@ export const PropertyList: React.FC<PropertyListProps> = ({
       </Card>
 
       {/* Properties Grid */}
-      {loading ? (
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-8 h-8 animate-spin" />
-          <span className="ml-2">Loading properties...</span>
-        </div>
-      ) : filteredProperties.length === 0 ? (
+      {filteredProperties.length === 0 ? (
         <Card>
           <CardContent className="text-center py-12">
             <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
             <h3 className="text-lg font-medium mb-2">No properties found</h3>
             <p className="text-muted-foreground mb-4">
-              {properties.length === 0 
-                ? "You haven't added any properties yet." 
-                : "No properties match your search criteria."
-              }
+              {properties.length === 0 && verificationStatus === 'verified' ? "You haven't added any properties yet." : "No properties match your search criteria."}
             </p>
             {onAddProperty && properties.length === 0 && (
               <Button onClick={onAddProperty}>

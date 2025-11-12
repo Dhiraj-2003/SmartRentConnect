@@ -8,9 +8,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -121,6 +123,20 @@ public class AdminController {
 
     // =============== OWNER VERIFICATION MANAGEMENT ===============
     
+    @GetMapping("/owners")
+    public ResponseEntity<Page<OwnerResponse>> getAllOwners(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "id") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+        
+        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
+            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        
+        return ResponseEntity.ok(adminService.getAllOwners(pageable));
+    }
+    
     @GetMapping("/owners/pending-verification")
     public ResponseEntity<java.util.List<OwnerResponse>> getPendingOwnerVerifications() {
         return ResponseEntity.ok(adminService.getPendingOwnerVerifications());
@@ -139,8 +155,11 @@ public class AdminController {
     @PutMapping("/owners/{ownerId}/reject")
     public ResponseEntity<OwnerResponse> rejectOwnerVerification(
             @PathVariable Long ownerId,
-            @RequestParam(required = false) String reason) {
-        return ResponseEntity.ok(adminService.rejectOwnerVerification(ownerId, reason));
+            @RequestParam(required = true) String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason is required");
+        }
+        return ResponseEntity.ok(adminService.rejectOwnerVerification(ownerId, reason.trim()));
     }
 }
 

@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -29,4 +31,13 @@ public class OwnerResponse {
     private Boolean isProfileComplete;
     private Boolean isVerified;
     private String verificationStatus;
+    private String rejectionReason;
+    
+    // Additional fields for admin management
+    private LocalDateTime joinDate;
+    private Integer totalProperties;
+    private Integer activeRentals;
+    private Double totalRevenue;
+    private LocalDateTime lastLogin;
+    private String status; // ACTIVE, INACTIVE, SUSPENDED
 }

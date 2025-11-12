@@ -299,12 +299,18 @@ public class AdminService {
 
     // =============== OWNER VERIFICATION METHODS ===============
     
+    public Page<OwnerResponse> getAllOwners(Pageable pageable) {
+        Page<Owner> owners = ownerRepository.findAll(pageable);
+        return owners.map(this::mapToOwnerResponse);
+    }
+    
     public OwnerResponse verifyOwner(Long ownerId) {
         Owner owner = ownerRepository.findById(ownerId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Owner not found"));
         
         owner.setIsVerified(true);
         owner.setVerificationStatus("VERIFIED");
+        owner.setRejectionReason(null); // Clear any previous rejection reason
         Owner savedOwner = ownerRepository.save(owner);
         
         return mapToOwnerResponse(savedOwner);
@@ -316,7 +322,7 @@ public class AdminService {
         
         owner.setIsVerified(false);
         owner.setVerificationStatus("REJECTED");
-        // Note: In a real application, you might want to add a rejection reason field
+        owner.setRejectionReason(reason);
         Owner savedOwner = ownerRepository.save(owner);
         
         return mapToOwnerResponse(savedOwner);
@@ -341,6 +347,13 @@ public class AdminService {
     }
     
     private OwnerResponse mapToOwnerResponse(Owner owner) {
+        // Calculate owner statistics
+        Integer totalProperties = Math.toIntExact(propertyRepository.countByOwnerId(owner.getId()));
+        Integer activeRentals = Math.toIntExact(tenantPropertyHistoryRepository.countByPropertyOwnerIdAndEndDateIsNull(owner.getId()));
+        Double totalRevenue = propertyRepository.findByOwnerId(owner.getId()).stream()
+                .mapToDouble(Property::getRent)
+                .sum() * 12; // Yearly revenue calculation
+        
         return OwnerResponse.builder()
                 .id(owner.getId())
                 .username(owner.getUsername())
@@ -360,7 +373,14 @@ public class AdminService {
                 .isProfileComplete(owner.getIsProfileComplete())
                 .isVerified(owner.getIsVerified())
                 .verificationStatus(owner.getVerificationStatus())
+                .rejectionReason(owner.getRejectionReason())
                 .role(owner.getRole().getName())
+                .joinDate(LocalDateTime.now()) // This should be from user creation date if available
+                .totalProperties(totalProperties)
+                .activeRentals(activeRentals)
+                .totalRevenue(totalRevenue)
+                .lastLogin(LocalDateTime.now()) // This should be from actual login tracking
+                .status("ACTIVE") // This should be from actual user status field
                 .build();
     }
 }

@@ -38,4 +38,7 @@ public interface TenantPropertyHistoryRepository extends JpaRepository<TenantPro
     
     @Query("SELECT COUNT(tph) FROM TenantPropertyHistory tph WHERE tph.property.id = :propertyId AND tph.endDate IS NULL")
     Long countByPropertyIdAndEndDateIsNull(@Param("propertyId") Long propertyId);
+    
+    @Query("SELECT COUNT(tph) FROM TenantPropertyHistory tph WHERE tph.property.owner.id = :ownerId AND tph.endDate IS NULL")
+    Long countByPropertyOwnerIdAndEndDateIsNull(@Param("ownerId") Long ownerId);
 }

@@ -5,22 +5,62 @@ import { PropertyForm } from '@/components/owner/PropertyForm';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { Plus, ArrowLeft, AlertTriangle, Shield } from 'lucide-react';
+import { Plus, ArrowLeft, AlertTriangle, Shield, User, CheckCircle } from 'lucide-react';
+import { ownerAPI } from '@/lib/api';
 
 export const OwnerProperties: React.FC = () => {
   const navigate = useNavigate();
   const [showForm, setShowForm] = useState(false);
   const [profileStatus, setProfileStatus] = useState({
     isProfileComplete: false,
-    isVerified: false
+    isVerified: false,
+    verificationStatus: 'PENDING',
+    rejectionReason: undefined,
+    completionPercentage: 0
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load profile status - in real app: await ownerAPI.getProfileStatus()
-    setProfileStatus({
-      isProfileComplete: false, // Set to false to show incomplete state
-      isVerified: false
-    });
+    const loadProfileStatus = async () => {
+      try {
+        const response = await ownerAPI.getProfile().catch(() => null);
+        
+        if (response) {
+          // Calculate completion percentage based on required fields
+          const requiredFields = [
+            'fullName', 'phone', 'address', 'city', 'state', 'pincode', 'dateOfBirth'
+          ];
+          const completedFields = requiredFields.filter(
+            field => !!response.data[field]
+          ).length;
+          const completionPercentage = Math.round((completedFields / requiredFields.length) * 100);
+          
+          setProfileStatus({
+            isProfileComplete: response.data.isProfileComplete || false,
+            isVerified: response.data.isVerified || false,
+            verificationStatus: response.data.verificationStatus || 'PENDING',
+            rejectionReason: response.data.rejectionReason || undefined,
+            completionPercentage
+          });
+        } else {
+          // If profile not found, set default values
+          setProfileStatus({
+            isProfileComplete: false,
+            isVerified: false,
+            verificationStatus: 'PENDING',
+            rejectionReason: undefined,
+            completionPercentage: 0
+          });
+        }
+      } catch (error) {
+        console.error('Error loading profile status:', error);
+        toast.error('Failed to load profile status');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadProfileStatus();
   }, []);
 
   const handleAddPropertyClick = () => {
@@ -60,16 +100,89 @@ export const OwnerProperties: React.FC = () => {
             <Alert className="mb-6 border-orange-200 bg-orange-50">
               <AlertTriangle className="h-4 w-4 text-orange-600" />
               <AlertDescription className="text-orange-800">
-                <strong>Complete Your Profile:</strong> Please complete your profile and upload required documents to start adding properties.
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Complete Your Profile:</strong> Your profile is {profileStatus.completionPercentage}% complete. 
+                    Complete your profile and upload required documents to start adding properties.
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/owner/profile')}
+                    className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100"
+                  >
+                    <User className="w-4 h-4 mr-1" />
+                    Complete Profile
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
 
-          {profileStatus.isProfileComplete && !profileStatus.isVerified && (
+          {profileStatus.isProfileComplete && !profileStatus.isVerified && profileStatus.verificationStatus !== 'REJECTED' && (
             <Alert className="mb-6 border-yellow-200 bg-yellow-50">
               <Shield className="h-4 w-4 text-yellow-600" />
               <AlertDescription className="text-yellow-800">
-                <strong>Verification Pending:</strong> Your profile is under admin review. You'll be able to add properties once verified.
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Verification Pending:</strong> Your profile is complete and under admin review. 
+                    You'll be able to add properties once your documents are verified.
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/owner/profile')}
+                    className="ml-4 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                  >
+                    <Shield className="w-4 h-4 mr-1" />
+                    View Profile
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {profileStatus.verificationStatus === 'REJECTED' && profileStatus.rejectionReason && (
+            <Alert className="mb-6 border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Verification Rejected:</strong> Your profile verification was rejected. 
+                    Please review the feedback and update your profile to resubmit for verification.
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/owner/profile')}
+                    className="ml-4 border-red-300 text-red-700 hover:bg-red-100"
+                  >
+                    <User className="w-4 h-4 mr-1" />
+                    Update Profile
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {profileStatus.isProfileComplete && profileStatus.isVerified && (
+            <Alert className="mb-6 border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <strong>Profile Verified:</strong> Your profile is complete and verified. You can now add and manage properties!
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => navigate('/owner/profile')}
+                    className="ml-4 border-green-300 text-green-700 hover:bg-green-100"
+                  >
+                    <User className="w-4 h-4 mr-1" />
+                    View Profile
+                  </Button>
+                </div>
               </AlertDescription>
             </Alert>
           )}
@@ -84,14 +197,21 @@ export const OwnerProperties: React.FC = () => {
             <Button 
               onClick={handleAddPropertyClick} 
               className={`flex items-center ${isAddPropertyDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
-              disabled={isAddPropertyDisabled}
+              disabled={isAddPropertyDisabled || loading}
+              variant={isAddPropertyDisabled ? 'outline' : 'default'}
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Property
             </Button>
           </div>
 
-          <PropertyList showHeader={false} />
+          <PropertyList 
+            showHeader={false} 
+            verificationStatus={
+              !profileStatus.isProfileComplete ? 'incomplete' : 
+              profileStatus.isVerified ? 'verified' : 'pending'
+            }
+          />
         </>
       ) : (
         <>
