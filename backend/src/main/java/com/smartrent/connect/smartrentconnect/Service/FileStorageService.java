@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.annotation.PostConstruct;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,6 +18,20 @@ public class FileStorageService {
 
     @Value("${app.file.upload-dir:uploads}")
     private String uploadDir;
+
+    // Initialize upload directory on startup
+    @PostConstruct
+    public void init() {
+        try {
+            Path uploadPath = Paths.get(uploadDir);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+                System.out.println("Created upload directory: " + uploadPath.toAbsolutePath());
+            }
+        } catch (IOException e) {
+            System.err.println("Could not create upload directory: " + e.getMessage());
+        }
+    }
 
     public String storeFile(MultipartFile file, String userType, String documentType) throws IOException {
         // Generate unique filename
@@ -42,9 +58,12 @@ public class FileStorageService {
         // Store file
         Path targetLocation = documentDir.resolve(fileName);
         Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
+        
+        String relativePath = String.format("/uploads/%s/%s/%s", userType, documentType, fileName);
+        System.out.println("File stored successfully: " + relativePath + " (absolute: " + targetLocation.toAbsolutePath() + ")");
 
         // Return relative path for URL construction
-        return String.format("/uploads/%s/%s/%s", userType, documentType, fileName);
+        return relativePath;
     }
 
     public boolean deleteFile(String filePath) {

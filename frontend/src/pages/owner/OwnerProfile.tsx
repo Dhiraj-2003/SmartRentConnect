@@ -73,7 +73,6 @@ export const OwnerProfile: React.FC = () => {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      
       // Load profile data from backend
       const response = await ownerAPI.getProfile();
       const profileData = response.data;
@@ -99,6 +98,8 @@ export const OwnerProfile: React.FC = () => {
         isVerified: profileData.isVerified || false
       };
       
+      console.log('Profile loaded successfully with file URLs');
+      
       setProfileData(loadedProfile);
       
       // Set image previews if URLs exist
@@ -115,7 +116,17 @@ export const OwnerProfile: React.FC = () => {
       setLoading(false);
     } catch (error: any) {
       console.error('Failed to load profile:', error);
-      toast.error('Failed to load profile');
+      
+      // If it's a 400 error, it might be normal for new users
+      if (error.response?.status === 400) {
+        console.log('Profile not found - initializing empty profile for new user');
+        setProfileData(prev => ({
+          ...prev,
+          email: user?.email || ''
+        }));
+      } else {
+        toast.error('Failed to load profile');
+      }
       setLoading(false);
     }
   };

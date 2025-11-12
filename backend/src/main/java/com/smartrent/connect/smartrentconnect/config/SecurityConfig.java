@@ -62,6 +62,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Allow auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
+                        // Allow file serving endpoints
+                        .requestMatchers("/uploads/**").permitAll()
 
                         // Role-based endpoints
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")

@@ -10,26 +10,84 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Value;
 
 @Service
 public class OwnerService {
 
     @Autowired
     private OwnerRepository ownerRepository;
+    
+    @Value("${server.port:8080}")
+    private String serverPort;
+    
+    private String generateFileUrl(String filePath) {
+        if (filePath == null || filePath.isEmpty()) {
+            return null;
+        }
+        
+        // If it's already a full URL, return as is
+        if (filePath.startsWith("http")) {
+            return filePath;
+        }
+        
+        // Generate full URL for file serving
+        String baseUrl = "http://localhost:" + serverPort;
+        if (filePath.startsWith("/uploads/")) {
+            return baseUrl + filePath;
+        } else if (filePath.startsWith("uploads/")) {
+            return baseUrl + "/" + filePath;
+        } else {
+            return baseUrl + "/uploads/" + filePath;
+        }
+    }
 
     public Owner getCurrentOwner() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return ownerRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        System.out.println("Looking for owner with username: " + username);
+        Optional<Owner> ownerOpt = ownerRepository.findByUsername(username);
+        if (ownerOpt.isPresent()) {
+            System.out.println("Owner found: " + ownerOpt.get().getUsername());
+            return ownerOpt.get();
+        } else {
+            System.out.println("No owner found with username: " + username);
+            throw new RuntimeException("Owner not found");
+        }
     }
 
     public OwnerProfileResponseDTO getProfile() {
-        Owner owner = getCurrentOwner();
-        return convertToDTO(owner);
+        try {
+            Owner owner = getCurrentOwner();
+            System.out.println("Found owner: " + owner.getEmail());
+            return convertToDTO(owner);
+        } catch (RuntimeException e) {
+            // If owner not found, return a basic profile with just username
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            System.out.println("Owner not found for username: " + username + ", returning basic profile");
+            OwnerProfileResponseDTO dto = new OwnerProfileResponseDTO();
+            dto.setUsername(username);
+            dto.setIsProfileComplete(false);
+            dto.setIsVerified(false);
+            dto.setVerificationStatus("PENDING");
+            return dto;
+        }
     }
 
     public OwnerProfileResponseDTO updateProfile(OwnerProfileUpdateDTO profileDTO) {
-        Owner owner = getCurrentOwner();
+        Owner owner;
+        try {
+            owner = getCurrentOwner();
+        } catch (RuntimeException e) {
+            // If owner doesn't exist, create a new one
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            System.out.println("Creating new owner for username: " + username);
+            owner = new Owner();
+            owner.setUsername(username);
+            // We'll need to set email later when we have it
+            owner.setIsProfileComplete(false);
+            owner.setIsVerified(false);
+            owner.setVerificationStatus("PENDING");
+        }
 
         // Update basic profile information
         owner.setFullName(profileDTO.getFullName());
@@ -90,12 +148,20 @@ public class OwnerService {
         dto.setState(owner.getState());
         dto.setPincode(owner.getPincode());
         dto.setDateOfBirth(owner.getDateOfBirth());
-        dto.setProfileImage(owner.getProfileImage());
-        dto.setAadharCardImage(owner.getAadharCardImage());
-        dto.setPanCardImage(owner.getPanCardImage());
+        
+        // Generate full URLs for file paths
+        dto.setProfileImage(generateFileUrl(owner.getProfileImage()));
+        dto.setAadharCardImage(generateFileUrl(owner.getAadharCardImage()));
+        dto.setPanCardImage(generateFileUrl(owner.getPanCardImage()));
+        
         dto.setIsProfileComplete(owner.getIsProfileComplete());
         dto.setIsVerified(owner.getIsVerified());
         dto.setVerificationStatus(owner.getVerificationStatus());
+        
+        System.out.println("Generated URLs - Profile: " + dto.getProfileImage() + 
+                          ", Aadhar: " + dto.getAadharCardImage() + 
+                          ", PAN: " + dto.getPanCardImage());
+        
         return dto;
     }
 }
