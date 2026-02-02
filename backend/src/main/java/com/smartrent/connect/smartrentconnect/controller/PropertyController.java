@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/properties")
@@ -54,8 +55,18 @@ public class PropertyController {
 
     // =============== GET PROPERTY BY ID (ALL AUTHENTICATED USERS) ===============
     @GetMapping("/{propertyId}")
-    public ResponseEntity<PropertyResponse> getPropertyById(@PathVariable Long propertyId) {
+    public ResponseEntity<?> getPropertyById(@PathVariable Long propertyId, Authentication authentication) {
         PropertyResponse response = propertyService.getPropertyById(propertyId);
+        
+        // Check if property is approved or if user is the owner
+        boolean isOwner = authentication != null && 
+            authentication.getName().equals(response.getOwnerName());
+        
+        if (!"APPROVED".equals(response.getApprovalStatus()) && !isOwner) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Property is not yet approved by admin"));
+        }
+        
         return ResponseEntity.ok(response);
     }
 

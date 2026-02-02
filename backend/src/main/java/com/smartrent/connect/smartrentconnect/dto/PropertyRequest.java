@@ -17,11 +17,14 @@ public class PropertyRequest {
     @NotBlank(message = "Title is required")
     private String title;
 
-    @NotBlank(message = "Description is required")
     private String description;
 
     @NotBlank(message = "Location is required")
     private String location;
+
+    private String city;
+    private String state;
+    private String pincode;
 
     @NotNull(message = "Rent is required")
     @Positive(message = "Rent must be positive")
@@ -37,5 +40,10 @@ public class PropertyRequest {
 
     private Double area;
 
-    private Boolean available = true;
+    @Builder.Default
+    private Boolean available = false;
+    
+    // Additional fields from frontend
+    private String propertyType; // flat or pg
+    private String sharingTypes; // JSON string for PG properties
 }

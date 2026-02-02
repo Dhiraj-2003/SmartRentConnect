@@ -124,14 +124,21 @@ public class AdminService {
     public void approveProperty(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
+        
+        property.setApprovalStatus("APPROVED");
         property.setAvailable(true);
+        property.setRejectionReason(null);
         propertyRepository.save(property);
     }
 
-    public void rejectProperty(Long propertyId) {
+    public void rejectProperty(Long propertyId, String reason) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
-        propertyRepository.delete(property);
+        
+        property.setApprovalStatus("REJECTED");
+        property.setAvailable(false);
+        property.setRejectionReason(reason != null && !reason.trim().isEmpty() ? reason.trim() : "Property rejected by admin");
+        propertyRepository.save(property);
     }
 
     public RevenueReportResponse getRevenueReport() {
@@ -210,6 +217,9 @@ public class AdminService {
                 .title(property.getTitle())
                 .description(property.getDescription())
                 .location(property.getLocation())
+                .city(property.getCity())
+                .state(property.getState())
+                .pincode(property.getPincode())
                 .rent(property.getRent())
                 .amenities(property.getAmenities())
                 .images(property.getImages())
@@ -217,6 +227,8 @@ public class AdminService {
                 .bathrooms(property.getBathrooms())
                 .area(property.getArea())
                 .available(property.getAvailable())
+                .approvalStatus(property.getApprovalStatus())
+                .rejectionReason(property.getRejectionReason())
                 .rating(property.getRating())
                 .reviewCount(property.getReviewCount())
                 .ownerName(property.getOwner().getFullName())

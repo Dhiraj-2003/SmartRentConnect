@@ -34,6 +34,15 @@ public class Property {
     @Column(nullable = false, length = 300)
     private String location;
 
+    @Column(name = "city", length = 100)
+    private String city;
+
+    @Column(name = "state", length = 100)
+    private String state;
+
+    @Column(name = "pincode", length = 10)
+    private String pincode;
+
     @NotNull(message = "Rent is required")
     @Positive(message = "Rent must be positive")
     @Column(nullable = false)
@@ -56,7 +65,7 @@ public class Property {
 
     @Column(name = "available")
     @Builder.Default
-    private Boolean available = true;
+    private Boolean available = false;
 
     @Column(name = "approval_status")
     @Builder.Default

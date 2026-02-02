@@ -41,7 +41,6 @@ import {
   RefreshCw,
   Building,
   MapPin,
-  DollarSign,
   Star
 } from 'lucide-react';
 
@@ -307,7 +306,6 @@ export const PropertyManagement: React.FC = () => {
                       <TableCell>
                         <div className="text-sm">
                           <div className="font-medium">{property.ownerName}</div>
-                          <div className="text-muted-foreground">ID: {property.ownerId}</div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -318,7 +316,6 @@ export const PropertyManagement: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center text-sm font-medium">
-                          <DollarSign className="w-3 h-3 mr-1" />
                           ₹{property.rent.toLocaleString()}
                         </div>
                       </TableCell>

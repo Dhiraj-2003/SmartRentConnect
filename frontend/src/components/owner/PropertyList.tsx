@@ -3,7 +3,25 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import {
+import { 
+  MapPin, 
+  Star, 
+  Users, 
+  Bed, 
+  Bath, 
+  Square, 
+  Trash2, 
+  Edit, 
+  RefreshCw, 
+  Clock, 
+  CheckCircle, 
+  XCircle,
+  Search,
+  Filter,
+  Eye,
+  DollarSign
+} from 'lucide-react';
+import { 
   Select,
   SelectContent,
   SelectItem,
@@ -12,30 +30,15 @@ import {
 } from '@/components/ui/select';
 import { ownerAPI } from '@/lib/api';
 import { toast } from 'sonner';
-import { 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  RefreshCw,
-  MapPin,
-  DollarSign,
-  Star,
-  Users,
-  Bed,
-  Bath,
-  Square,
-  Clock,
-  CheckCircle,
-  XCircle
-} from 'lucide-react';
 
 interface Property {
   id: number;
   title: string;
   description: string;
   location: string;
+  city: string;
+  state: string;
+  pincode: string;
   rent: number;
   bedrooms: number;
   bathrooms: number;
@@ -43,7 +46,7 @@ interface Property {
   available: boolean;
   rating: number;
   reviewCount: number;
-  images: string[];
+  images: string[] | string; // Can be array of URLs or JSON string
   amenities: string;
   createdAt: string;
   approvalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
@@ -69,8 +72,20 @@ export const PropertyList: React.FC<PropertyListProps> = ({
   const [statusFilter, setStatusFilter] = useState('all');
 
   useEffect(() => {
-    if (verificationStatus === 'verified') {
+    // Always load properties for owners (they should see all their properties regardless of verification status)
+    if (verificationStatus === 'verified' || verificationStatus === 'pending') {
       loadProperties();
+    }
+  }, [verificationStatus]);
+
+  // Auto-refresh properties every 30 seconds to get latest approval status
+  useEffect(() => {
+    if (verificationStatus === 'verified' || verificationStatus === 'pending') {
+      const interval = setInterval(() => {
+        loadProperties();
+      }, 30000); // Refresh every 30 seconds
+
+      return () => clearInterval(interval);
     }
   }, [verificationStatus]);
 
@@ -84,11 +99,45 @@ export const PropertyList: React.FC<PropertyListProps> = ({
         sortDir: 'desc'
       });
       setProperties(response.data.content || response.data);
+      
+      // Show feedback about property approval status
+      const approvedCount = response.data.content?.filter((p: Property) => p.approvalStatus === 'APPROVED').length || 0;
+      const pendingCount = response.data.content?.filter((p: Property) => p.approvalStatus === 'PENDING').length || 0;
+      const rejectedCount = response.data.content?.filter((p: Property) => p.approvalStatus === 'REJECTED').length || 0;
+      
+      if (approvedCount > 0) {
+        toast.success(`${approvedCount} property(s) approved and visible to tenants`);
+      }
+      if (pendingCount > 0) {
+        toast.info(`${pendingCount} property(s) pending admin approval`);
+      }
+      if (rejectedCount > 0) {
+        toast.error(`${rejectedCount} property(s) rejected. Please update and resubmit.`);
+      }
+      
     } catch (error: any) {
       console.error('Failed to load properties:', error);
       toast.error('Failed to load properties');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper function to parse images from JSON string or array
+  const parseImages = (images: string[] | string): string[] => {
+    if (!images) return [];
+    
+    if (Array.isArray(images)) {
+      return images;
+    }
+    
+    // If it's a string, try to parse as JSON
+    try {
+      const parsed = JSON.parse(images);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (e) {
+      // If parsing fails, return empty array
+      return [];
     }
   };
 
@@ -102,6 +151,17 @@ export const PropertyList: React.FC<PropertyListProps> = ({
     } catch (error: any) {
       toast.error('Failed to delete property');
     }
+  };
+
+  const formatAddress = (property: Property) => {
+    const parts = [
+      property.location,
+      property.city,
+      property.state,
+      property.pincode
+    ].filter(Boolean); // Remove null/undefined values
+    
+    return parts.join(', ');
   };
 
   const filteredProperties = properties.filter(property => {
@@ -239,17 +299,21 @@ export const PropertyList: React.FC<PropertyListProps> = ({
             <Card key={property.id} className="overflow-hidden hover:shadow-lg transition-shadow">
               {/* Property Image */}
               <div className="relative h-48 bg-muted">
-                {property.images && property.images.length > 0 ? (
-                  <img
-                    src={property.images[0]}
-                    alt={property.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Users className="w-12 h-12 text-muted-foreground" />
-                  </div>
-                )}
+                {(() => {
+                  const parsedImages = parseImages(property.images);
+                  return parsedImages.length > 0 ? (
+                    <img
+                      src={parsedImages[0]}
+                      alt={property.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback to placeholder if image fails to load
+                        (e.target as HTMLImageElement).style.display = 'none';
+                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null;
+                })()}
                 <div className="absolute top-2 right-2">
                   {getStatusBadge(property.approvalStatus)}
                 </div>
@@ -261,13 +325,12 @@ export const PropertyList: React.FC<PropertyListProps> = ({
                   <h3 className="font-semibold text-lg mb-1 line-clamp-1">{property.title}</h3>
                   <div className="flex items-center text-sm text-muted-foreground">
                     <MapPin className="w-3 h-3 mr-1" />
-                    {property.location}
+                    {formatAddress(property)}
                   </div>
                 </div>
 
                 {/* Rent */}
                 <div className="flex items-center mb-3">
-                  <DollarSign className="w-4 h-4 mr-1 text-primary" />
                   <span className="text-lg font-bold text-primary">
                     ₹{property.rent.toLocaleString()}/month
                   </span>

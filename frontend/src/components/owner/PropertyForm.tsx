@@ -204,11 +204,14 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onCancel 
         propertyData.bedrooms = formData.bedrooms.toString();
       } else {
         propertyData.sharingTypes = JSON.stringify(formData.sharingTypes);
+        propertyData.rent = Math.max(formData.sharingTypes.single, formData.sharingTypes.double, formData.sharingTypes.triple).toString();
       }
 
-      await ownerAPI.createPropertyWithImages(propertyData);
+      console.log('Submitting property data:', propertyData);
+      const response = await ownerAPI.createPropertyWithImages(propertyData);
       
-      toast.success('Property submitted for admin approval!');
+      console.log('Property creation response:', response.data);
+      toast.success('Property submitted for admin approval! Images are being processed.');
       
       // Reset form
       setFormData({
@@ -237,7 +240,8 @@ export const PropertyForm: React.FC<PropertyFormProps> = ({ onSuccess, onCancel 
       
     } catch (error: any) {
       console.error('Error creating property:', error);
-      toast.error('Failed to create property. Please try again.');
+      const errorMessage = error.response?.data?.error || error.response?.data?.message || 'Failed to create property. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

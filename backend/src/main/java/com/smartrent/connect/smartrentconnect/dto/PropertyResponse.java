@@ -13,6 +13,10 @@ public class PropertyResponse {
     private String title;
     private String description;
     private String location;
+
+    private String city;
+    private String state;
+    private String pincode;
     private Double rent;
     private String amenities;
     private String images;
@@ -26,4 +30,6 @@ public class PropertyResponse {
     private String ownerName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String approvalStatus;
+    private String rejectionReason;
 }

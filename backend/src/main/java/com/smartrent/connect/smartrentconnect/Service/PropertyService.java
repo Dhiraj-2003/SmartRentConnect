@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -29,6 +30,9 @@ public class PropertyService {
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .location(request.getLocation())
+                .city(request.getCity())
+                .state(request.getState())
+                .pincode(request.getPincode())
                 .rent(request.getRent())
                 .amenities(request.getAmenities())
                 .images(request.getImages())
@@ -55,6 +59,9 @@ public class PropertyService {
         property.setTitle(request.getTitle());
         property.setDescription(request.getDescription());
         property.setLocation(request.getLocation());
+        property.setCity(request.getCity());
+        property.setState(request.getState());
+        property.setPincode(request.getPincode());
         property.setRent(request.getRent());
         property.setAmenities(request.getAmenities());
         property.setImages(request.getImages());
@@ -88,6 +95,7 @@ public class PropertyService {
     public List<PropertyResponse> getAllAvailableProperties() {
         return propertyRepository.findByAvailableTrue()
                 .stream()
+                .filter(property -> "APPROVED".equals(property.getApprovalStatus()))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
     }
@@ -115,8 +123,9 @@ public class PropertyService {
         
         List<Property> properties = propertyRepository.findByAvailableTrue();
         
-        // Apply filters
+        // Apply filters including approval status
         return properties.stream()
+                .filter(property -> "APPROVED".equals(property.getApprovalStatus()))
                 .filter(p -> location == null || p.getLocation().toLowerCase().contains(location.toLowerCase()))
                 .filter(p -> minRent == null || p.getRent() >= minRent)
                 .filter(p -> maxRent == null || p.getRent() <= maxRent)
@@ -127,29 +136,30 @@ public class PropertyService {
                 .filter(p -> maxArea == null || (p.getArea() != null && p.getArea() <= maxArea))
                 .filter(p -> amenities == null || (p.getAmenities() != null && 
                     p.getAmenities().toLowerCase().contains(amenities.toLowerCase())))
-                .sorted((p1, p2) -> {
-                    int result = 0;
-                    switch (sortBy.toLowerCase()) {
-                        case "rent":
-                            result = Double.compare(p1.getRent(), p2.getRent());
-                            break;
-                        case "rating":
-                            result = Double.compare(p1.getRating(), p2.getRating());
-                            break;
-                        case "area":
-                            result = p1.getArea() != null && p2.getArea() != null ? 
-                                Double.compare(p1.getArea(), p2.getArea()) : 0;
-                            break;
-                        case "created":
-                            result = p1.getCreatedAt().compareTo(p2.getCreatedAt());
-                            break;
-                        default:
-                            result = p1.getTitle().compareTo(p2.getTitle());
-                    }
-                    return "desc".equalsIgnoreCase(sortDir) ? -result : result;
-                })
+                .sorted(createComparator(sortBy, sortDir))
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
+    }
+
+    private Comparator<Property> createComparator(String sortBy, String sortDir) {
+        return (p1, p2) -> {
+            int result = 0;
+            switch (sortBy.toLowerCase()) {
+                case "rent":
+                    result = Double.compare(p1.getRent(), p2.getRent());
+                    break;
+                case "area":
+                    result = p1.getArea() != null && p2.getArea() != null ? 
+                                Double.compare(p1.getArea(), p2.getArea()) : 0;
+                    break;
+                case "created":
+                    result = p1.getCreatedAt().compareTo(p2.getCreatedAt());
+                    break;
+                default:
+                    result = p1.getTitle().compareTo(p2.getTitle());
+            }
+            return "desc".equalsIgnoreCase(sortDir) ? -result : result;
+        };
     }
 
     private PropertyResponse mapToResponse(Property property) {
@@ -158,6 +168,9 @@ public class PropertyService {
                 .title(property.getTitle())
                 .description(property.getDescription())
                 .location(property.getLocation())
+                .city(property.getCity())
+                .state(property.getState())
+                .pincode(property.getPincode())
                 .rent(property.getRent())
                 .amenities(property.getAmenities())
                 .images(property.getImages())
@@ -171,6 +184,8 @@ public class PropertyService {
                 .ownerName(property.getOwner().getFullName())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt())
+                .approvalStatus(property.getApprovalStatus())
+                .rejectionReason(property.getRejectionReason())
                 .build();
     }
 }

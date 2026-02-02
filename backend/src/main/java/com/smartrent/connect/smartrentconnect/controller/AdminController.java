@@ -93,8 +93,10 @@ public class AdminController {
     }
 
     @PutMapping("/properties/{propertyId}/reject")
-    public ResponseEntity<Void> rejectProperty(@PathVariable Long propertyId) {
-        adminService.rejectProperty(propertyId);
+    public ResponseEntity<Void> rejectProperty(
+            @PathVariable Long propertyId,
+            @RequestParam(required = false) String reason) {
+        adminService.rejectProperty(propertyId, reason);
         return ResponseEntity.ok().build();
     }
 
