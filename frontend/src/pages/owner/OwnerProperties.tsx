@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PropertyList } from '@/components/owner/PropertyList';
-import { PropertyForm } from '@/components/owner/PropertyForm';
+import { NewPropertyForm } from '@/components/owner/NewPropertyForm';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from 'sonner';
@@ -226,7 +226,7 @@ export const OwnerProperties: React.FC = () => {
             </Button>
           </div>
 
-          <PropertyForm 
+          <NewPropertyForm 
             onSuccess={handleSuccess}
             onCancel={handleCancel}
           />

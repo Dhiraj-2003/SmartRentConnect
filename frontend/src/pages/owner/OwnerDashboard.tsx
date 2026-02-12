@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { OwnerStats } from '@/components/owner/OwnerStats';
-import { PropertyForm } from '@/components/owner/PropertyForm';
+import { NewPropertyForm } from '@/components/owner/NewPropertyForm';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -148,7 +148,7 @@ export const OwnerDashboard: React.FC = () => {
   if (showAddProperty) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <PropertyForm 
+        <NewPropertyForm 
           onSuccess={handleAddPropertySuccess}
           onCancel={() => setShowAddProperty(false)}
         />

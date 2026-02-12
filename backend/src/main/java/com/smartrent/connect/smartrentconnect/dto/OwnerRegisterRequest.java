@@ -30,6 +30,4 @@ public class OwnerRegisterRequest {
     private String address;
 
     private String profileImage;
-
-    // getters and setters
 }

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminStats } from '@/components/admin/AdminStats';
-import { UserManagementTable } from '@/components/admin/UserManagementTable';
 import { RevenueChart } from '@/components/admin/RevenueChart';
 import { GuestPassManagement } from '@/components/admin/GuestPassManagement';
 import { Button } from '@/components/ui/enhanced-button';
@@ -25,10 +24,8 @@ import { Link } from 'react-router-dom';
 export const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [dashboardStats, setDashboardStats] = useState<any>(null);
-  const [users, setUsers] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [usersLoading, setUsersLoading] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
@@ -37,14 +34,12 @@ export const AdminDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsResponse, usersResponse, revenueResponse] = await Promise.all([
+      const [statsResponse, revenueResponse] = await Promise.all([
         adminAPI.getDashboard(),
-        adminAPI.getAllUsers({ page: 0, size: 10 }),
         adminAPI.getRevenueReport(),
       ]);
 
       setDashboardStats(statsResponse.data);
-      setUsers(usersResponse.data.content || usersResponse.data);
       setRevenueData(revenueResponse.data);
     } catch (error: any) {
       console.error('Failed to load dashboard data:', error);
@@ -52,24 +47,6 @@ export const AdminDashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const loadUsers = async () => {
-    try {
-      setUsersLoading(true);
-      const response = await adminAPI.getAllUsers({ page: 0, size: 50 });
-      setUsers(response.data.content || response.data);
-    } catch (error: any) {
-      console.error('Failed to load users:', error);
-      toast.error('Failed to load users');
-    } finally {
-      setUsersLoading(false);
-    }
-  };
-
-  const handleDeleteUser = async (userId: number) => {
-    await adminAPI.deleteUser(userId.toString());
-    await loadUsers();
   };
 
   if (loading) {
@@ -108,7 +85,7 @@ export const AdminDashboard: React.FC = () => {
           <Link to="/admin/users">
             <Button variant="outline" className="w-full flex flex-col h-20 space-y-2">
               <UserPlus className="w-5 h-5" />
-              <span className="text-sm">Manage Users</span>
+              <span className="text-sm">Manage Owners</span>
             </Button>
           </Link>
           <Link to="/admin/properties">

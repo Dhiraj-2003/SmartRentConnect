@@ -124,6 +124,13 @@
 			<version>3.5.2</version>
 		</dependency>
 
+		<!-- Cloudinary SDK -->
+		<dependency>
+			<groupId>com.cloudinary</groupId>
+			<artifactId>cloudinary-http44</artifactId>
+			<version>1.33.0</version>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -145,12 +152,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<excludes>
-						<exclude>
-							<groupId>org.projectlombok</groupId>
-							<artifactId>lombok</artifactId>
-						</exclude>
-					</excludes>
+					<!-- Remove Lombok exclusion to enable annotation processing -->
 				</configuration>
 			</plugin>
 		</plugins>

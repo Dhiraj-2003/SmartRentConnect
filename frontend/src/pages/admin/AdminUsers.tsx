@@ -67,6 +67,7 @@ export const AdminUsers: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [profileFilter, setProfileFilter] = useState<string>('completed'); // Default to completed profiles
   const [sortBy, setSortBy] = useState<keyof Owner>('joinDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -84,6 +85,13 @@ export const AdminUsers: React.FC = () => {
     pendingVerification: 0,
     activeProperties: 0
   });
+
+  // Helper function to construct full image URLs
+  const getImageUrl = (url?: string) => {
+    if (!url) return undefined;
+    if (url.startsWith('http')) return url;
+    return `http://localhost:8080${url}`;
+  };
 
   // Mock data for demonstration
   const mockOwners: Owner[] = [
@@ -176,7 +184,7 @@ export const AdminUsers: React.FC = () => {
 
   useEffect(() => {
     loadOwners();
-  }, [currentPage, sortBy, sortOrder]);
+  }, [currentPage, sortBy, sortOrder, profileFilter]);
 
   const loadOwners = async () => {
     try {
@@ -196,7 +204,12 @@ export const AdminUsers: React.FC = () => {
           aadhar: owner.aadharCardImage,
           pan: owner.panCardImage
         }
-      }));
+      })).filter((owner: Owner) => {
+        // Filter by profile completion
+        if (profileFilter === 'completed' && !owner.isProfileComplete) return false;
+        if (profileFilter === 'incomplete' && owner.isProfileComplete) return false;
+        return true;
+      });
       
       setOwners(ownersData);
       setStats({
@@ -209,12 +222,13 @@ export const AdminUsers: React.FC = () => {
       console.error('Failed to load owners:', error);
       toast.error('Failed to load owners');
       // Fallback to mock data if API fails
-      setOwners(mockOwners);
+      const completedMockOwners = mockOwners.filter(owner => owner.isProfileComplete);
+      setOwners(completedMockOwners);
       setStats({
-        totalOwners: mockOwners.length,
-        verifiedOwners: mockOwners.filter(o => o.isVerified).length,
-        pendingVerification: mockOwners.filter(o => !o.isVerified).length,
-        activeProperties: mockOwners.reduce((sum, o) => sum + o.totalProperties, 0)
+        totalOwners: completedMockOwners.length,
+        verifiedOwners: completedMockOwners.filter(o => o.isVerified).length,
+        pendingVerification: completedMockOwners.filter(o => !o.isVerified).length,
+        activeProperties: completedMockOwners.reduce((sum, o) => sum + o.totalProperties, 0)
       });
     } finally {
       setLoading(false);
@@ -275,9 +289,12 @@ export const AdminUsers: React.FC = () => {
   };
 
   const handleViewDocument = (url: string, title: string) => {
-    const isPdf = url.toLowerCase().endsWith('.pdf');
+    const fullUrl = getImageUrl(url);
+    if (!fullUrl) return;
+    
+    const isPdf = fullUrl.toLowerCase().endsWith('.pdf');
     setCurrentDoc({
-      url,
+      url: fullUrl,
       type: isPdf ? 'pdf' : 'image',
       title
     });
@@ -308,7 +325,11 @@ export const AdminUsers: React.FC = () => {
                          (statusFilter === 'verified' && owner.isVerified) ||
                          (statusFilter === 'pending' && !owner.isVerified);
     
-    return matchesSearch && matchesStatus;
+    const matchesProfile = profileFilter === 'all' ||
+                          (profileFilter === 'completed' && owner.isProfileComplete) ||
+                          (profileFilter === 'incomplete' && !owner.isProfileComplete);
+    
+    return matchesSearch && matchesStatus && matchesProfile;
   });
 
   const sortedOwners = [...filteredOwners].sort((a, b) => {
@@ -437,6 +458,19 @@ export const AdminUsers: React.FC = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="w-full md:w-48">
+              <Select value={profileFilter} onValueChange={setProfileFilter}>
+                <SelectTrigger>
+                  <User className="w-4 h-4 mr-2" />
+                  <SelectValue placeholder="Filter by profile" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="completed">Profile Complete</SelectItem>
+                  <SelectItem value="incomplete">Profile Incomplete</SelectItem>
+                  <SelectItem value="all">All Profiles</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -522,7 +556,7 @@ export const AdminUsers: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
                           <img
-                            src={owner.profileImage || `https://ui-avatars.com/api/?name=${owner.fullName}&size=40`}
+                            src={getImageUrl(owner.profileImage) || `https://ui-avatars.com/api/?name=${owner.fullName}&size=40`}
                             alt={owner.fullName}
                             className="w-10 h-10 rounded-full mr-3"
                           />
@@ -544,18 +578,30 @@ export const AdminUsers: React.FC = () => {
                         {new Date(owner.joinDate).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <Badge 
-                          variant={owner.isVerified ? "default" : "secondary"}
-                          className={
-                            owner.verificationStatus === 'VERIFIED' 
-                              ? "bg-green-100 text-green-800" 
-                              : owner.verificationStatus === 'REJECTED'
-                              ? "bg-red-100 text-red-800"
-                              : "bg-yellow-100 text-yellow-800"
-                          }
-                        >
-                          {owner.verificationStatus || (owner.isVerified ? 'Verified' : 'Pending')}
-                        </Badge>
+                        <div className="flex flex-col gap-1">
+                          <Badge 
+                            variant={owner.isVerified ? "default" : "secondary"}
+                            className={
+                              owner.verificationStatus === 'VERIFIED' 
+                                ? "bg-green-100 text-green-800" 
+                                : owner.verificationStatus === 'REJECTED'
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }
+                          >
+                            {owner.verificationStatus || (owner.isVerified ? 'Verified' : 'Pending')}
+                          </Badge>
+                          <Badge 
+                            variant="outline"
+                            className={
+                              owner.isProfileComplete 
+                                ? "bg-blue-50 text-blue-700 border-blue-200 text-xs"
+                                : "bg-gray-50 text-gray-500 border-gray-200 text-xs"
+                            }
+                          >
+                            {owner.isProfileComplete ? 'Profile Complete' : 'Profile Incomplete'}
+                          </Badge>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <Button
@@ -624,7 +670,7 @@ export const AdminUsers: React.FC = () => {
               {/* Profile Section */}
               <div className="flex items-start space-x-6">
                 <img
-                  src={selectedOwner.profileImage || `https://ui-avatars.com/api/?name=${selectedOwner.fullName}&size=120`}
+                  src={getImageUrl(selectedOwner.profileImage) || `https://ui-avatars.com/api/?name=${selectedOwner.fullName}&size=120`}
                   alt={selectedOwner.fullName}
                   className="w-32 h-32 rounded-lg object-cover border"
                 />
@@ -707,7 +753,7 @@ export const AdminUsers: React.FC = () => {
                     {selectedOwner.documents.aadhar ? (
                       <div className="space-y-2">
                         <img
-                          src={selectedOwner.documents.aadhar}
+                          src={getImageUrl(selectedOwner.documents.aadhar)}
                           alt="Aadhar Card"
                           className="w-full h-32 object-cover rounded border"
                         />
@@ -731,7 +777,7 @@ export const AdminUsers: React.FC = () => {
                     {selectedOwner.documents.pan ? (
                       <div className="space-y-2">
                         <img
-                          src={selectedOwner.documents.pan}
+                          src={getImageUrl(selectedOwner.documents.pan)}
                           alt="PAN Card"
                           className="w-full h-32 object-cover rounded border"
                         />

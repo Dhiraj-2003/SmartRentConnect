@@ -46,7 +46,6 @@ public class DataInitializer implements CommandLineRunner {
             tenant.setPassword(passwordEncoder.encode("password"));
             tenant.setFullName("Demo Tenant");
             tenant.setPhoneNumber("1234567890");
-            tenant.setRoomNumber("101");
             tenant.setAddress("Demo Address, City");
             tenant.setRole(Role.TENANT);
 

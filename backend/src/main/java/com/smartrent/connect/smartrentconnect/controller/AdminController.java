@@ -65,39 +65,6 @@ public class AdminController {
         return ResponseEntity.noContent().build();
     }
 
-    // =============== PROPERTY MANAGEMENT ===============
-    @GetMapping("/properties")
-    public ResponseEntity<Page<PropertyResponse>> getAllProperties(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "id") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-        
-        Sort sort = sortDir.equalsIgnoreCase("desc") ? 
-            Sort.by(sortBy).descending() : Sort.by(sortBy).ascending();
-        Pageable pageable = PageRequest.of(page, size, sort);
-        
-        return ResponseEntity.ok(adminService.getAllProperties(pageable));
-    }
-
-    @DeleteMapping("/properties/{propertyId}")
-    public ResponseEntity<Void> deleteProperty(@PathVariable Long propertyId) {
-        adminService.deleteProperty(propertyId);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PutMapping("/properties/{propertyId}/approve")
-    public ResponseEntity<Void> approveProperty(@PathVariable Long propertyId) {
-        adminService.approveProperty(propertyId);
-        return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/properties/{propertyId}/reject")
-    public ResponseEntity<Void> rejectProperty(@PathVariable Long propertyId) {
-        adminService.rejectProperty(propertyId);
-        return ResponseEntity.ok().build();
-    }
-
     // =============== REVENUE REPORTS ===============
     @GetMapping("/revenue-report")
     public ResponseEntity<RevenueReportResponse> getRevenueReport() {

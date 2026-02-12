@@ -1,9 +1,12 @@
 package com.smartrent.connect.smartrentconnect.dto;
 
+import com.smartrent.connect.smartrentconnect.enums.PropertyType;
+import com.smartrent.connect.smartrentconnect.enums.PropertyStatus;
 import lombok.Data;
 import lombok.Builder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -11,19 +14,31 @@ public class PropertyResponse {
 
     private Long id;
     private String title;
+    private PropertyType propertyType;
     private String description;
-    private String location;
-    private Double rent;
+    private String address;
+    private String city;
+    private String state;
+    private String pincode;
+    private Double deposit;
     private String amenities;
-    private String images;
-    private Integer bedrooms;
-    private Integer bathrooms;
-    private Double area;
-    private Boolean available;
-    private Double rating;
-    private Integer reviewCount;
+    private PropertyStatus status;
+    private String rejectionReason;
     private Long ownerId;
     private String ownerName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Rating information (calculated dynamically)
+    private Double averageRating;
+    private Long totalRatings;
+    
+    // Flat specific details
+    private FlatDetailsResponse flatDetails;
+    
+    // PG specific details
+    private PGDetailsResponse pgDetails;
+    
+    // Images
+    private List<String> images;
 }

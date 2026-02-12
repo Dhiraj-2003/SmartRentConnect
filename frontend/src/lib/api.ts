@@ -151,11 +151,17 @@ export const adminAPI = {
     sortDir?: string;
   }) => api.get('/admin/properties', { params }),
   
-  deleteProperty: (id: string) => api.delete(`/admin/properties/${id}`),
-  
   approveProperty: (id: string) => api.put(`/admin/properties/${id}/approve`),
   
-  rejectProperty: (id: string) => api.put(`/admin/properties/${id}/reject`),
+  rejectProperty: (id: string, reason?: string) => {
+    const config = reason ? { data: reason, headers: { 'Content-Type': 'text/plain' } } : {};
+    return api.put(`/admin/properties/${id}/reject`, reason, config);
+  },
+  
+  // Property Media
+  getPropertyImages: (id: string) => api.get(`/admin/properties/${id}/images`),
+  
+  getPropertyDocuments: (id: string) => api.get(`/admin/properties/${id}/documents`),
   
   // Revenue Reports
   getRevenueReport: () => api.get('/admin/revenue-report'),
@@ -168,37 +174,96 @@ export const adminAPI = {
   }) => api.get('/admin/guest-passes', { params }),
 };
 
-// Comprehensive Owner API - All owner-related operations
+// Enhanced Owner API with new property management
 export const ownerAPI = {
   // Dashboard & Stats
   getDashboard: () => api.get('/owner/dashboard'),
   getDashboardStats: () => api.get('/owner/dashboard'),
   
-  // Property Management
-  getProperties: () => api.get('/owner/properties'),
+  // Property Management - New Structure
+  getProperties: () => api.get('/owner/property'),
+  getProperty: (id: string) => api.get(`/owner/property/${id}`),
+  createProperty: (propertyData: any, images: File[] = [], documents: any[] = []) => {
+    const formData = new FormData();
+    
+    // Add property data as JSON string
+    formData.append('property', JSON.stringify(propertyData));
+    
+    // Add images
+    images.forEach((file) => {
+      formData.append('images', file);
+    });
+    
+    // Add documents and document types separately
+    documents.forEach((doc) => {
+      formData.append('documentFiles', doc.file);
+      formData.append('documentTypes', doc.documentType);
+    });
+    
+    return api.post('/owner/property', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  submitPropertyForVerification: (id: string) => api.post(`/owner/property/${id}/submit`),
+  
+  // Property Images Management (Cloudinary Uploads)
+  uploadPropertyImages: (propertyId: string, files: File[]) => {
+    const formData = new FormData();
+    files.forEach(file => formData.append('files', file));
+    return api.post(`/owner/property/${propertyId}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  uploadSinglePropertyImage: (propertyId: string, file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post(`/owner/property/${propertyId}/images/single`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  addPropertyImage: (propertyId: string, imageData: any) => 
+    api.post(`/properties/${propertyId}/images`, imageData),
+  getPropertyImages: (propertyId: string) => {
+    console.log('=== API CALL: getPropertyImages ===');
+    console.log('Property ID:', propertyId);
+    console.log('Authorization token:', localStorage.getItem('token'));
+    console.log('Full URL:', `/owner/property/${propertyId}/images`);
+    
+    return api.get(`/owner/property/${propertyId}/images`);
+  },
+  
+  updatePropertyImage: (imageId: string, imageData: any) => 
+    api.put(`/properties/images/${imageId}`, imageData),
+  deletePropertyImage: (imageId: string) => 
+    api.delete(`/properties/images/${imageId}`),
+  addPropertyDocument: (propertyId: string, documentData: any) => 
+    api.post(`/properties/${propertyId}/documents`, documentData),
+  
+  getPropertyDocuments: (propertyId: string) => {
+    console.log('=== API CALL: getPropertyDocuments ===');
+    console.log('Property ID:', propertyId);
+    console.log('Authorization token:', localStorage.getItem('token'));
+    console.log('Full URL:', `/owner/property/${propertyId}/documents`);
+    
+    return api.get(`/owner/property/${propertyId}/documents`);
+  },
+  deletePropertyDocument: (documentId: string) => 
+    api.delete(`/properties/documents/${documentId}`),
+
+  // PG Room Management
+  addPGRoom: (propertyId: string, data: any) => api.post(`/owner/property/${propertyId}/rooms`, data),
+  deletePGRoom: (propertyId: string, roomId: string) => api.delete(`/owner/property/${propertyId}/rooms/${roomId}`),
+  
+  // Legacy Property Management (for backward compatibility)
   getMyProperties: (params?: {
     page?: number;
     size?: number;
     sortBy?: string;
     sortDir?: string;
-  }) => api.get('/owner/properties', { params }),
-  
-  createProperty: (data: any) => api.post('/owner/properties', data),
-  createPropertyWithImages: (propertyData: any) => {
-    const formData = new FormData();
-    Object.keys(propertyData).forEach(key => {
-      if (key === 'images' && Array.isArray(propertyData[key])) {
-        propertyData[key].forEach((file: File) => formData.append('images', file));
-      } else if (propertyData[key] !== null && propertyData[key] !== undefined) {
-        formData.append(key, propertyData[key]);
-      }
-    });
-    return api.post('/owner/properties/with-images', formData);
-  },
+  }) => api.get('/owner/property', { params }),
   
   updateProperty: (id: string, data: any) => api.put(`/owner/properties/${id}`, data),
   deleteProperty: (id: string) => api.delete(`/owner/properties/${id}`),
-  getProperty: (id: string) => api.get(`/owner/properties/${id}`),
   
   // Property Reviews
   getPropertyReviews: (propertyId: string) => api.get(`/owner/properties/${propertyId}/reviews`),
@@ -222,29 +287,6 @@ export const ownerAPI = {
   
   // Authentication Test
   testAuth: () => api.get('/owner/test-auth'),
-  
-  // File Upload Operations
-  uploadProfileImage: (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return api.post('/owner/upload/profile-image', formData);
-  },
-  
-  uploadDocument: (file: File, documentType: string) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('documentType', documentType);
-    return api.post('/owner/upload/document', formData);
-  },
-  
-  uploadPropertyImages: (files: File[]) => {
-    const formData = new FormData();
-    files.forEach(file => formData.append('files', file));
-    return api.post('/owner/upload/property-images', formData);
-  },
-  
-  deleteFile: (filePath: string) => 
-    api.delete(`/owner/upload/file?filePath=${encodeURIComponent(filePath)}`),
 };
 
 // Watchman API
@@ -258,9 +300,19 @@ export const watchmanAPI = {
   recordExit: (passId: string) => api.post(`/watchman/exit/${passId}`),
 };
 
-// Enhanced Admin API with owner verification
+// Enhanced Admin API with owner verification and property management
 export const enhancedAdminAPI = {
   ...adminAPI,
+  
+  // Property Management
+  getAllProperties: () => api.get('/admin/properties'),
+  getPendingProperties: () => api.get('/admin/properties/pending'),
+  getPropertyById: (id: string) => api.get(`/admin/properties/${id}`),
+  approveProperty: (id: string) => api.put(`/admin/properties/${id}/approve`),
+  rejectProperty: (id: string, reason?: string) => {
+    const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
+    return api.put(`/admin/properties/${id}/reject${params}`);
+  },
   
   // Owner Management
   getAllOwners: (params?: {
@@ -280,6 +332,44 @@ export const enhancedAdminAPI = {
     const params = reason ? `?reason=${encodeURIComponent(reason)}` : '';
     return api.put(`/admin/owners/${ownerId}/reject${params}`);
   },
+};
+
+// Tenant Property API
+export const tenantAPI = {
+  // Property Browsing
+  getProperties: (params?: {
+    city?: string;
+    propertyType?: string;
+    minDeposit?: number;
+    maxDeposit?: number;
+  }) => api.get('/tenant/properties', { params }),
+  
+  getPropertyById: (id: string) => api.get(`/tenant/properties/${id}`),
+  
+  // PG Availability
+  getPGAvailability: (propertyId: string) => api.get(`/tenant/pg/${propertyId}/availability`),
+  
+  // Booking
+  bookFlat: (propertyId: string) => api.post(`/tenant/book/flat/${propertyId}`),
+  bookBed: (propertyId: string, roomId: string, bedId: string) => 
+    api.post(`/tenant/book/bed/${propertyId}/${roomId}/${bedId}`),
+};
+
+// Rating API
+export const ratingAPI = {
+  // Create rating
+  createRating: (propertyId: string, data: { rating: number; review?: string }) =>
+    api.post(`/ratings/property/${propertyId}`, data),
+  
+  // Get ratings
+  getPropertyRatings: (propertyId: string) => api.get(`/ratings/property/${propertyId}`),
+  getAverageRating: (propertyId: string) => api.get(`/ratings/property/${propertyId}/average`),
+  getTotalRatings: (propertyId: string) => api.get(`/ratings/property/${propertyId}/total`),
+  
+  // Manage own ratings
+  updateRating: (ratingId: string, data: { rating: number; review?: string }) =>
+    api.put(`/ratings/${ratingId}`, data),
+  deleteRating: (ratingId: string) => api.delete(`/ratings/${ratingId}`),
 };
 
 export default api;

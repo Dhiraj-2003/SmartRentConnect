@@ -6,11 +6,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "owners")
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
-@Builder
+@NoArgsConstructor
 public class Owner extends User {
 
     @NotBlank(message = "Full name is required")
@@ -48,15 +46,12 @@ public class Owner extends User {
     private String panCardImage; // URL to PAN card image
 
     @Column(name = "is_profile_complete")
-    @Builder.Default
     private Boolean isProfileComplete = false;
 
     @Column(name = "is_verified")
-    @Builder.Default
     private Boolean isVerified = false;
 
     @Column(name = "verification_status")
-    @Builder.Default
     private String verificationStatus = "PENDING"; // PENDING, VERIFIED, REJECTED
     
     @Column(name = "rejection_reason", length = 500)

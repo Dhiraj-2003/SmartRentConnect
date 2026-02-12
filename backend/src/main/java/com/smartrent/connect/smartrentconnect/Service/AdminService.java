@@ -2,6 +2,7 @@ package com.smartrent.connect.smartrentconnect.Service;
 
 import com.smartrent.connect.smartrentconnect.dto.*;
 import com.smartrent.connect.smartrentconnect.entity.*;
+import com.smartrent.connect.smartrentconnect.enums.PropertyStatus;
 import com.smartrent.connect.smartrentconnect.repository.*;
 import com.smartrent.connect.smartrentconnect.enums.Role;
 import lombok.RequiredArgsConstructor;
@@ -28,7 +29,7 @@ public class AdminService {
     private final AdminRepository adminRepository;
     private final PropertyRepository propertyRepository;
     private final GuestPassRepository guestPassRepository;
-    private final ReviewRepository reviewRepository;
+    private final PropertyRatingRepository propertyRatingRepository;
     private final TenantPropertyHistoryRepository tenantPropertyHistoryRepository;
 
     public DashboardStatsResponse getDashboardStats() {
@@ -37,15 +38,15 @@ public class AdminService {
         long totalOwners = ownerRepository.count();
         long totalWatchmen = watchmanRepository.count();
         long activeRentals = tenantPropertyHistoryRepository.countByEndDateIsNull();
-        long pendingApprovals = propertyRepository.countByAvailableFalse(); // Assuming false means pending
+        long pendingApprovals = propertyRepository.countByStatus(PropertyStatus.PENDING);
         long totalGuestPasses = guestPassRepository.count();
         long activeGuestPasses = guestPassRepository.countByStatus(GuestPass.GuestPassStatus.ACTIVE);
-        long totalReviews = reviewRepository.count();
+        long totalReviews = propertyRatingRepository.count();
         
         // Calculate total revenue (this would typically come from a payments table)
         double totalRevenue = calculateTotalRevenue();
         double monthlyRevenue = calculateMonthlyRevenue();
-        double averageRating = reviewRepository.findAverageRating().orElse(0.0);
+        double averageRating = calculateOverallAverageRating();
 
         return DashboardStatsResponse.builder()
                 .totalProperties(totalProperties)
@@ -124,7 +125,7 @@ public class AdminService {
     public void approveProperty(Long propertyId) {
         Property property = propertyRepository.findById(propertyId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Property not found"));
-        property.setAvailable(true);
+        property.setStatus(com.smartrent.connect.smartrentconnect.enums.PropertyStatus.APPROVED);
         propertyRepository.save(property);
     }
 
@@ -177,7 +178,6 @@ public class AdminService {
                 Tenant tenant = (Tenant) user;
                 builder.fullName(tenant.getFullName())
                        .phoneNumber(tenant.getPhoneNumber())
-                       .roomNumber(tenant.getRoomNumber())
                        .address(tenant.getAddress());
                 break;
             case OWNER:
@@ -208,17 +208,16 @@ public class AdminService {
         return PropertyResponse.builder()
                 .id(property.getId())
                 .title(property.getTitle())
+                .propertyType(property.getPropertyType())
                 .description(property.getDescription())
-                .location(property.getLocation())
-                .rent(property.getRent())
+                .address(property.getAddress())
+                .city(property.getCity())
+                .state(property.getState())
+                .pincode(property.getPincode())
+                .deposit(property.getDeposit())
                 .amenities(property.getAmenities())
-                .images(property.getImages())
-                .bedrooms(property.getBedrooms())
-                .bathrooms(property.getBathrooms())
-                .area(property.getArea())
-                .available(property.getAvailable())
-                .rating(property.getRating())
-                .reviewCount(property.getReviewCount())
+                .status(property.getStatus())
+                .rejectionReason(property.getRejectionReason())
                 .ownerName(property.getOwner().getFullName())
                 .ownerId(property.getOwner().getId())
                 .createdAt(property.getCreatedAt())
@@ -248,13 +247,23 @@ public class AdminService {
     // Revenue calculation methods (simplified - in real app, this would use payment records)
     private double calculateTotalRevenue() {
         return propertyRepository.findAll().stream()
-                .mapToDouble(Property::getRent)
+                .mapToDouble(property -> {
+                    // TODO: Calculate based on property type
+                    // For FLAT: get rent from FlatDetails
+                    // For PG: calculate from occupied PGBeds
+                    return 0.0; // Placeholder
+                })
                 .sum() * 12; // Assuming yearly calculation
     }
 
     private double calculateMonthlyRevenue() {
         return propertyRepository.findAll().stream()
-                .mapToDouble(Property::getRent)
+                .mapToDouble(property -> {
+                    // TODO: Calculate based on property type
+                    // For FLAT: get rent from FlatDetails
+                    // For PG: calculate from occupied PGBeds
+                    return 0.0; // Placeholder
+                })
                 .sum();
     }
 
@@ -285,7 +294,27 @@ public class AdminService {
         return propertyRepository.findAll().stream()
                 .collect(Collectors.toMap(
                     Property::getTitle,
-                    property -> property.getRent() * 12
+                    property -> {
+                        // Calculate annual revenue based on property type
+                        if (property.getPropertyType() == com.smartrent.connect.smartrentconnect.enums.PropertyType.FLAT) {
+                            // For flats, get rent from FlatDetails
+                            return propertyRepository.findByPropertyTypeAndStatus(
+                                com.smartrent.connect.smartrentconnect.enums.PropertyType.FLAT,
+                                com.smartrent.connect.smartrentconnect.enums.PropertyStatus.APPROVED
+                            ).stream()
+                            .filter(p -> p.getId().equals(property.getId()))
+                            .findFirst()
+                            .map(p -> {
+                                // This would need to fetch FlatDetails to get rent
+                                // For now, return 0 as placeholder
+                                return 0.0;
+                            })
+                            .orElse(0.0) * 12;
+                        } else {
+                            // For PGs, calculate based on occupied beds
+                            return 0.0; // Placeholder - would need to query PGBed table
+                        }
+                    }
                 ));
     }
 
@@ -293,7 +322,14 @@ public class AdminService {
         return propertyRepository.findAll().stream()
                 .collect(Collectors.groupingBy(
                     property -> property.getOwner().getFullName(),
-                    Collectors.summingDouble(property -> property.getRent() * 12)
+                    Collectors.summingDouble(property -> {
+                        // Calculate annual revenue based on property type
+                        if (property.getPropertyType() == com.smartrent.connect.smartrentconnect.enums.PropertyType.FLAT) {
+                            return 0.0; // Placeholder - would need FlatDetails rent
+                        } else {
+                            return 0.0; // Placeholder - would need occupied beds calculation
+                        }
+                    })
                 ));
     }
 
@@ -351,7 +387,12 @@ public class AdminService {
         Integer totalProperties = Math.toIntExact(propertyRepository.countByOwnerId(owner.getId()));
         Integer activeRentals = Math.toIntExact(tenantPropertyHistoryRepository.countByPropertyOwnerIdAndEndDateIsNull(owner.getId()));
         Double totalRevenue = propertyRepository.findByOwnerId(owner.getId()).stream()
-                .mapToDouble(Property::getRent)
+                .mapToDouble(property -> {
+                    // TODO: Calculate based on property type
+                    // For FLAT: get rent from FlatDetails
+                    // For PG: calculate from occupied PGBeds
+                    return 0.0; // Placeholder
+                })
                 .sum() * 12; // Yearly revenue calculation
         
         return OwnerResponse.builder()
@@ -382,5 +423,25 @@ public class AdminService {
                 .lastLogin(LocalDateTime.now()) // This should be from actual login tracking
                 .status("ACTIVE") // This should be from actual user status field
                 .build();
+    }
+
+    private double calculateOverallAverageRating() {
+        List<Property> allProperties = propertyRepository.findAll();
+        if (allProperties.isEmpty()) {
+            return 0.0;
+        }
+        
+        double totalRating = 0.0;
+        int propertyCount = 0;
+        
+        for (Property property : allProperties) {
+            Double avgRating = propertyRatingRepository.findAverageRatingByPropertyId(property.getId());
+            if (avgRating != null) {
+                totalRating += avgRating;
+                propertyCount++;
+            }
+        }
+        
+        return propertyCount > 0 ? totalRating / propertyCount : 0.0;
     }
 }

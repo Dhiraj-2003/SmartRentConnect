@@ -52,7 +52,6 @@ public class AuthService {
         tenant.setEmail(request.getEmail());
         tenant.setFullName(request.getFullName());
         tenant.setPhoneNumber(request.getPhoneNumber());
-        tenant.setRoomNumber(request.getRoomNumber());
         tenant.setAddress(request.getAddress());
         tenant.setProfileImage(request.getProfileImage());
         tenant.setPassword(passwordEncoder.encode(request.getPassword()));

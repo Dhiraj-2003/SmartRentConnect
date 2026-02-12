@@ -31,9 +31,9 @@ public class QRCodeService {
     }
 
     public String generateGuestPassQRData(String passId, String visitorName, String visitorMobile, 
-                                        String tenantName, String roomNumber) {
+                                        String tenantName) {
         // Create a structured QR code data
         return String.format("GUEST_PASS|%s|%s|%s|%s|%s", 
-                passId, visitorName, visitorMobile, tenantName, roomNumber);
+                passId, visitorName, visitorMobile, tenantName);
     }
 }

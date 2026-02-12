@@ -136,8 +136,8 @@ public class GuestPassService {
                 guestPass.getPassId(),
                 guestPass.getVisitorName(),
                 guestPass.getVisitorMobile(),
-                guestPass.getTenant().getFullName(),
-                guestPass.getTenant().getRoomNumber()
+                guestPass.getTenant().getFullName()
+                //guestPass.getTenant().getRoomNumber()
         );
 
         String qrCodeBase64 = qrCodeService.generateQRCodeBase64(qrData);
@@ -152,7 +152,7 @@ public class GuestPassService {
         response.setNumberOfGuests(guestPass.getNumberOfGuests());
         response.setTenantId(guestPass.getTenant().getId());
         response.setTenantName(guestPass.getTenant().getFullName());
-        response.setTenantRoomNumber(guestPass.getTenant().getRoomNumber());
+        //response.setTenantRoomNumber(guestPass.getTenant().getRoomNumber());
         response.setStatus(guestPass.getStatus().name());
         response.setEntryTime(guestPass.getEntryTime());
         response.setExitTime(guestPass.getExitTime());

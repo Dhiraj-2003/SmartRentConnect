@@ -1,5 +1,5 @@
 import React from 'react';
-import { PropertyForm } from '@/components/owner/PropertyForm';
+import { NewPropertyForm } from '@/components/owner/NewPropertyForm';
 import { useNavigate } from 'react-router-dom';
 
 export const AddProperty: React.FC = () => {
@@ -15,7 +15,7 @@ export const AddProperty: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <PropertyForm 
+      <NewPropertyForm 
         onSuccess={handleSuccess}
         onCancel={handleCancel}
       />
