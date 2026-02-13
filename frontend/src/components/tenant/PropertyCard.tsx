@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/enhanced-button';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Star, Users } from 'lucide-react';
+import { MapPin, Star, Users, Eye } from 'lucide-react';
 
 interface Property {
   id: string;
@@ -11,6 +11,7 @@ interface Property {
   rating: number;
   ownerName: string;
   image: string;
+  images?: any[]; // Add images array for multiple images
   bedrooms: number;
   bathrooms: number;
   area: number;
@@ -30,29 +31,55 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
   onView,
   showActions = true 
 }) => {
+  const handleCardClick = () => {
+    onView?.(property.id);
+  };
+
   return (
-    <div className="bg-card rounded-lg shadow-card border border-border overflow-hidden hover:shadow-elevated transition-smooth">
-      <div className="relative">
+    <div 
+      className="bg-card rounded-lg shadow-card border border-border overflow-hidden hover:shadow-elevated transition-smooth cursor-pointer"
+      onClick={handleCardClick}
+    >
+      <div className="relative group">
         <img
           src={property.image}
           alt={property.title}
           className="w-full h-48 object-cover"
         />
+        
+        {/* Eye button overlay - similar to Owner's page */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+            <Eye className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium text-gray-800">
+              View Photos
+            </span>
+          </div>
+        </div>
+        
+        {/* Image count badge */}
+        <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 rounded-md flex items-center space-x-1">
+          <Eye className="w-3 h-3" />
+          <span className="text-xs font-medium">
+            {property.images?.length || 1}
+          </span>
+        </div>
+        
         <div className="absolute top-3 right-3">
           <Badge variant={property.available ? "default" : "secondary"}>
             {property.available ? 'Available' : 'Occupied'}
           </Badge>
         </div>
-        <div className="absolute top-3 left-3 bg-card/90 backdrop-blur-sm rounded-lg px-2 py-1">
-          <div className="flex items-center space-x-1">
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-2">
+          <h3 className="text-lg font-semibold text-foreground flex-1">{property.title}</h3>
+          <div className="flex items-center space-x-1 bg-card/90 backdrop-blur-sm rounded-lg px-2 py-1">
             <Star className="w-4 h-4 text-warning fill-current" />
             <span className="text-sm font-medium">{property.rating}</span>
           </div>
         </div>
-      </div>
-
-      <div className="p-4">
-        <h3 className="text-lg font-semibold text-foreground mb-2">{property.title}</h3>
         
         <div className="flex items-center text-muted-foreground mb-2">
           <MapPin className="w-4 h-4 mr-1" />
@@ -84,7 +111,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
               variant="outline"
               size="sm"
               className="flex-1"
-              onClick={() => onView?.(property.id)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click when clicking button
+                onView?.(property.id);
+              }}
             >
               View Details
             </Button>
@@ -93,7 +123,10 @@ export const PropertyCard: React.FC<PropertyCardProps> = ({
                 variant="gradient"
                 size="sm"
                 className="flex-1"
-                onClick={() => onBook?.(property.id)}
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent card click when clicking button
+                  onBook?.(property.id);
+                }}
               >
                 Book Now
               </Button>

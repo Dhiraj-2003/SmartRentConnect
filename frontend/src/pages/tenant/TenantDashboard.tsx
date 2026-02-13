@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { StatCard } from '@/components/Dashboard/StatCard';
-import { PropertyCard } from '@/components/Properties/PropertyCard';
+import { PropertyCard } from '@/components/tenant/PropertyCard';
 import { Button } from '@/components/ui/enhanced-button';
+import { tenantAPI } from '@/lib/api';
+import { toast } from 'sonner';
 import { 
   Home, 
   CreditCard, 
@@ -12,47 +14,52 @@ import {
   Search 
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import property1 from '@/assets/property-1.jpg';
-import property2 from '@/assets/property-2.jpg';
+
+interface DashboardData {
+  currentProperty?: any;
+  pendingPayments: number;
+  openComplaints: number;
+  guestPasses: number;
+  recommendedProperties: any[];
+}
 
 export const TenantDashboard: React.FC = () => {
   const { user } = useAuth();
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const response = await tenantAPI.getDashboard();
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const stats = [
-    { title: 'Current Property', value: '1', icon: Home, color: 'primary' as const },
-    { title: 'Pending Payments', value: '₹15,000', icon: CreditCard, color: 'warning' as const },
-    { title: 'Open Complaints', value: '2', icon: MessageCircle, color: 'destructive' as const },
-    { title: 'Guest Passes', value: '5', icon: QrCode, color: 'success' as const },
+    { title: 'Current Property', value: dashboardData?.currentProperty ? '1' : '0', icon: Home, color: 'primary' as const },
+    { title: 'Pending Payments', value: `₹${dashboardData?.pendingPayments?.toLocaleString() || '0'}`, icon: CreditCard, color: 'warning' as const },
+    { title: 'Open Complaints', value: dashboardData?.openComplaints?.toString() || '0', icon: MessageCircle, color: 'destructive' as const },
+    { title: 'Guest Passes', value: dashboardData?.guestPasses?.toString() || '0', icon: QrCode, color: 'success' as const },
   ];
 
-  const recentProperties = [
-    {
-      id: '1',
-      title: 'Moonlight PG',
-      location: 'Koramangala, Bangalore',
-      rent: 8000,
-      rating: 4.5,
-      ownerName: user?.username || 'You',
-      image: property1,
-      bedrooms: 2,
-      bathrooms: 2,
-      area: 1200,
-      available: true,
-    },
-    {
-      id: '2',
-      title: 'Shree Balaj PG',
-      location: 'Jay Raam Nagar, Hinjewadi Pase-1',
-      rent: 4000,
-      rating: 4.8,
-      ownerName: user?.username || 'You',
-      image: property2,
-      bedrooms: 3,
-      bathrooms: 2,
-      area: 2000,
-      available: true,
-    },
-  ];
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <span className="ml-2">Loading dashboard...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -61,7 +68,7 @@ export const TenantDashboard: React.FC = () => {
           Welcome back, {user?.fullName || user?.username}!
         </h1>
         <p className="text-muted-foreground">
-          Room: {user?.roomNumber} • Manage your rental experience
+          Room: {user?.roomNumber || 'Not assigned'} • Manage your rental experience
         </p>
       </div>
 
@@ -110,24 +117,26 @@ export const TenantDashboard: React.FC = () => {
       </div>
 
       {/* Recommended Properties */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold text-foreground">Recommended Properties</h2>
-          <Link to="/properties">
-            <Button variant="outline">View All</Button>
-          </Link>
+      {dashboardData?.recommendedProperties && dashboardData.recommendedProperties.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-foreground">Recommended Properties</h2>
+            <Link to="/properties">
+              <Button variant="outline">View All</Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {dashboardData.recommendedProperties.map((property) => (
+              <PropertyCard
+                key={property.id}
+                property={property}
+                onBook={(id) => console.log('Book property:', id)}
+                onView={(id) => console.log('View property:', id)}
+              />
+            ))}
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {recentProperties.map((property) => (
-            <PropertyCard
-              key={property.id}
-              property={property}
-              onBook={(id) => console.log('Book property:', id)}
-              onView={(id) => console.log('View property:', id)}
-            />
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 };

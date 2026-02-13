@@ -23,7 +23,9 @@ import { PropertyManagement } from '@/pages/admin/PropertyManagement';
 import { AdminReports } from '@/pages/admin/AdminReports';
 import { WatchmanDashboard } from '@/pages/watchman/WatchmanDashboard';
 import { GuestPass } from '@/pages/tenant/GuestPass';
-import { Properties } from '@/pages/properties/Properties';
+import { BookFlat } from '@/pages/tenant/BookFlat';
+import { BookPG } from '@/pages/tenant/BookPG';
+import { Properties } from '@/pages/tenant/Properties';
 import { VerifyPass } from '@/pages/watchman/VerifyPass';
 import NotFound from "./pages/NotFound";
 import 'react-toastify/dist/ReactToastify.css';
@@ -153,15 +155,21 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
-        <Route path="/properties/:id" element={
-          <ProtectedRoute allowedRoles={['TENANT', 'OWNER', 'ADMIN']}>
-            <Properties />
-          </ProtectedRoute>
-        } />
-        
         <Route path="/guest-pass" element={
           <ProtectedRoute allowedRoles={['TENANT']}>
             <GuestPass />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/book/flat/:id" element={
+          <ProtectedRoute allowedRoles={['TENANT']}>
+            <BookFlat />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/book/pg/:id" element={
+          <ProtectedRoute allowedRoles={['TENANT']}>
+            <BookPG />
           </ProtectedRoute>
         } />
         

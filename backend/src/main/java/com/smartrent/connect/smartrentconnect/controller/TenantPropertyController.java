@@ -15,19 +15,24 @@ import java.util.List;
 @RequestMapping("/api/tenant")
 @RequiredArgsConstructor
 @PreAuthorize("hasAuthority('TENANT')")
-@CrossOrigin(origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, allowCredentials = "true")
+@CrossOrigin(
+  origins = {"http://localhost:3000", "http://127.0.0.1:3000"}, 
+  allowCredentials = "true"
+)
 public class TenantPropertyController {
 
     private final TenantPropertyService tenantPropertyService;
 
+    @GetMapping("/dashboard")
+    public ResponseEntity<String> getTenantDashboard(Authentication authentication) {
+        String username = authentication.getName();
+        String dashboardMessage = tenantPropertyService.getTenantDashboard(username);
+        return ResponseEntity.ok(dashboardMessage);
+    }
+
     @GetMapping("/properties")
-    public ResponseEntity<List<PropertyResponse>> getApprovedProperties(
-            @RequestParam(required = false) String city,
-            @RequestParam(required = false) PropertyType propertyType,
-            @RequestParam(required = false) Double minDeposit,
-            @RequestParam(required = false) Double maxDeposit) {
-        List<PropertyResponse> properties = tenantPropertyService.getApprovedProperties(
-                city, propertyType, minDeposit, maxDeposit);
+    public ResponseEntity<List<PropertyResponse>> getAllProperties() {
+        List<PropertyResponse> properties = tenantPropertyService.getAllProperties();
         return ResponseEntity.ok(properties);
     }
 

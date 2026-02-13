@@ -336,15 +336,18 @@ export const enhancedAdminAPI = {
 
 // Tenant Property API
 export const tenantAPI = {
+  // Dashboard
+  getDashboard: () => api.get('/tenant/dashboard'),
+  
   // Property Browsing
-  getProperties: (params?: {
-    city?: string;
-    propertyType?: string;
-    minDeposit?: number;
-    maxDeposit?: number;
-  }) => api.get('/tenant/properties', { params }),
+  getAllProperties: () => api.get('/tenant/properties'),
   
   getPropertyById: (id: string) => api.get(`/tenant/properties/${id}`),
+  
+  // Property Media
+  getPropertyImages: (id: string) => api.get(`/tenant/properties/${id}/images`),
+  
+  getPropertyDocuments: (id: string) => api.get(`/tenant/properties/${id}/documents`),
   
   // PG Availability
   getPGAvailability: (propertyId: string) => api.get(`/tenant/pg/${propertyId}/availability`),

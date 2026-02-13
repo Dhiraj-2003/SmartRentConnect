@@ -48,7 +48,8 @@ import {
   FileText,
   ExternalLink,
   CheckCircle,
-  XCircle
+  XCircle,
+  User
 } from 'lucide-react';
 
 interface Property {
@@ -66,6 +67,7 @@ interface Property {
   rejectionReason?: string;
   ownerId: number;
   ownerName: string;
+  ownerProfileImage?: string;
   createdAt: string;
   updatedAt: string;
   averageRating: number;
@@ -113,6 +115,13 @@ export const PropertyManagement: React.FC = () => {
   const [rejectionReason, setRejectionReason] = useState('');
   const [propertyToReject, setPropertyToReject] = useState<Property | null>(null);
 
+  // Helper function to construct full image URLs
+  const getImageUrl = (url?: string) => {
+    if (!url) return undefined;
+    if (url.startsWith('http')) return url;
+    return `http://localhost:8080${url}`;
+  };
+
   useEffect(() => {
     loadProperties();
   }, []);
@@ -132,6 +141,14 @@ export const PropertyManagement: React.FC = () => {
       console.log('Properties array:', response.data.content || response.data);
       
       const properties = response.data.content || response.data;
+      
+      // Debug: Log first property structure to see available fields
+      if (properties && properties.length > 0) {
+        console.log('=== FIRST PROPERTY STRUCTURE ===');
+        console.log('First property:', properties[0]);
+        console.log('Available fields:', Object.keys(properties[0]));
+      }
+      
       setProperties(properties);
       console.log('Properties set:', properties);
     } catch (error: any) {
@@ -448,18 +465,10 @@ export const PropertyManagement: React.FC = () => {
                   filteredProperties.map((property) => (
                     <TableRow key={property.id}>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{property.title}</div>
-                          <div className="text-sm text-muted-foreground line-clamp-1">
-                            {property.description}
-                          </div>
-                        </div>
+                        <div className="font-medium">{property.title}</div>
                       </TableCell>
                       <TableCell>
-                        <div className="text-sm">
-                          <div className="font-medium">{property.ownerName}</div>
-                          <div className="text-muted-foreground">ID: {property.ownerId}</div>
-                        </div>
+                        <div className="text-sm font-medium text-gray-900">{property.ownerName}</div>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center text-sm">

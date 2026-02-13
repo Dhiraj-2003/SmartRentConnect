@@ -25,14 +25,18 @@ public class TenantPropertyService {
     private final PGBedRepository pgBedRepository;
     private final PropertyRatingRepository propertyRatingRepository;
     private final TenantRepository tenantRepository;
+    private final OwnerPropertyService ownerPropertyService;
 
-    public List<PropertyResponse> getApprovedProperties(String city, PropertyType propertyType, 
-                                                       Double minDeposit, Double maxDeposit) {
-        List<Property> properties = propertyRepository.findApprovedPropertiesWithFilters(
-                PropertyStatus.APPROVED, city, propertyType, minDeposit, maxDeposit);
-        
+    public String getTenantDashboard(String tenantUsername) {
+        // For now, return a simple welcome message
+        // In a real implementation, you would return actual dashboard stats
+        return "Welcome " + tenantUsername + "! This is your tenant dashboard.";
+    }
+
+    public List<PropertyResponse> getAllProperties() {
+        List<Property> properties = propertyRepository.findByStatus(PropertyStatus.APPROVED);
         return properties.stream()
-                .map(this::mapToResponse)
+                .map(ownerPropertyService::mapToResponse)
                 .collect(Collectors.toList());
     }
 
