@@ -284,9 +284,33 @@ export const ownerAPI = {
   updateProfileWithUrls: (formData: FormData) => {
     return api.post('/owner/profile/with-urls', formData);
   },
+
+  uploadProfileImage: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return api.post('/owner/upload/profile-image', formData);
+  },
+  uploadDocument: (file: File, documentType: string) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('documentType', documentType);
+    return api.post('/owner/profile/document', formData);
+  },
   
   // Authentication Test
   testAuth: () => api.get('/owner/test-auth'),
+
+  // Payment Onboarding
+  onboardPayments: (accountHolderName: string, accountNumber: string, ifsc: string) =>
+    api.post('/owner/razorpay/onboard', {
+      accountHolderName,
+      accountNumber,
+      ifsc
+    }),
+  
+  getPaymentStatus: () => api.get('/owner/razorpay/status'),
+  
+  testAuthentication: () => api.get('/owner/razorpay/test-auth'),
 };
 
 // Watchman API
@@ -342,6 +366,14 @@ export const tenantAPI = {
   // Property Browsing
   getAllProperties: () => api.get('/tenant/properties'),
   
+  getProperties: (params?: {
+    city?: string;
+    propertyType?: string;
+    minDeposit?: number;
+    maxDeposit?: number;
+    search?: string;
+  }) => api.get('/tenant/properties', { params }),
+  
   getPropertyById: (id: string) => api.get(`/tenant/properties/${id}`),
   
   // Property Media
@@ -353,9 +385,30 @@ export const tenantAPI = {
   getPGAvailability: (propertyId: string) => api.get(`/tenant/pg/${propertyId}/availability`),
   
   // Booking
-  bookFlat: (propertyId: string) => api.post(`/tenant/book/flat/${propertyId}`),
+  bookFlat: (propertyId: string, moveInDate?: string) => {
+    const params: any = {};
+    if (moveInDate) {
+      params.moveInDate = moveInDate;
+    }
+    return api.post(`/tenant/book/flat/${propertyId}`, null, { params });
+  },
   bookBed: (propertyId: string, roomId: string, bedId: string) => 
     api.post(`/tenant/book/bed/${propertyId}/${roomId}/${bedId}`),
+  getBookingDetails: (bookingId: string) => api.get(`/tenant/book/bookings/${bookingId}`),
+  getMyBookings: () => api.get('/tenant/book/my-bookings'),
+  cancelBooking: (bookingId: string) => api.post(`/tenant/book/cancel/${bookingId}`),
+
+  // Payment APIs
+  createPaymentOrder: (bookingId: string) => 
+    api.post(`/tenant/payment/online/${bookingId}`),
+  verifyPayment: (razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string, bookingId: string) =>
+    api.post('/tenant/payment/verify', { razorpayOrderId, razorpayPaymentId, razorpaySignature, bookingId }),
+  handlePaymentFailure: (razorpayOrderId: string, bookingId: string, failureReason?: string) =>
+    api.post('/tenant/payment/failure', { razorpayOrderId, bookingId, failureReason }),
+  initiateCashPayment: (bookingId: string) =>
+    api.post(`/tenant/payment/cash/${bookingId}`),
+  getPaymentStatus: (bookingId: string) => 
+    api.get(`/tenant/payment/status/${bookingId}`),
 };
 
 // Rating API

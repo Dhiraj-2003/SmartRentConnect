@@ -25,11 +25,11 @@ public class PGDetails {
     private Property property;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "genderAllowed", nullable = false, length = 10)
+    @Column(name = "gender_allowed", nullable = false, length = 10)
     private GenderType genderAllowed;
 
     @NotNull(message = "Food included is required")
-    @Column(name = "foodIncluded", nullable = false)
+    @Column(name = "food_included", nullable = false)
     private Boolean foodIncluded;
 
     @OneToMany(mappedBy = "pgDetails", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

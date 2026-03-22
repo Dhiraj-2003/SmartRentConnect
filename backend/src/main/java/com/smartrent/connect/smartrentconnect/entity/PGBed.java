@@ -23,7 +23,7 @@ public class PGBed {
 
     @NotNull(message = "Bed number is required")
     @Column(name = "bedNumber", nullable = false)
-    private Integer bedNumber;
+    private String bedNumber;
 
     @NotNull(message = "Occupied status is required")
     @Column(name = "isOccupied", nullable = false)

@@ -48,21 +48,4 @@ public class TenantPropertyController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/book/flat/{propertyId}")
-    public ResponseEntity<BookingResponse> bookFlat(
-            @PathVariable Long propertyId,
-            Authentication authentication) {
-        BookingResponse response = tenantPropertyService.bookFlat(propertyId, authentication.getName());
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/book/bed/{propertyId}/{roomId}/{bedId}")
-    public ResponseEntity<BookingResponse> bookBed(
-            @PathVariable Long propertyId,
-            @PathVariable Long roomId,
-            @PathVariable Long bedId,
-            Authentication authentication) {
-        BookingResponse response = tenantPropertyService.bookBed(propertyId, roomId, bedId, authentication.getName());
-        return ResponseEntity.ok(response);
-    }
 }

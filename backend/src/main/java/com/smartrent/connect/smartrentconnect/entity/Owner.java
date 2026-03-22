@@ -56,4 +56,13 @@ public class Owner extends User {
     
     @Column(name = "rejection_reason", length = 500)
     private String rejectionReason; // Reason for rejection if status is REJECTED
+    
+    @Column(name = "razorpay_account_id", length = 255)
+    private String razorpayAccountId;
+    
+    @Column(name = "is_online_payment_enabled")
+    private Boolean isOnlinePaymentEnabled=false;
+    
+    @Column(name = "razorpay_onboarding_status", length = 50)
+    private String razorpayOnboardingStatus;
 }

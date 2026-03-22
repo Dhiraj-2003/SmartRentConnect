@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -75,6 +76,29 @@ public class OwnerController {
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(Map.of("error", "Failed to update profile with URLs: " + e.getMessage()));
+        }
+    }
+
+    @PostMapping("/profile/document")
+    public ResponseEntity<?> uploadDocument(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("documentType") String documentType) {
+        try {
+            // For now, return a mock response since we don't have file storage implemented
+            // In a real implementation, you would:
+            // 1. Save the file to storage (local, S3, etc.)
+            // 2. Return the file path/URL
+            
+            String mockFilePath = "/uploads/documents/" + file.getOriginalFilename();
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "filePath", mockFilePath,
+                "message", "Document uploaded successfully"
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Failed to upload document: " + e.getMessage()));
         }
     }
 

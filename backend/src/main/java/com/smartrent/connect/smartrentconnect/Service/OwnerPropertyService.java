@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -137,10 +138,10 @@ public class OwnerPropertyService {
                 
                 // Create beds for the room
                 int totalBeds = calculateBedsBySharingType(SharingType.valueOf(floorConfig.getSharingType()));
-                for (int bedNum = 1; bedNum <= totalBeds; bedNum++) {
+                for (int bedNum = 0; bedNum < totalBeds; bedNum++) {
                     PGBed bed = PGBed.builder()
                             .pgRoom(savedRoom)
-                            .bedNumber(bedNum)
+                            .bedNumber(generateBedIdentifier(bedNum))
                             .isOccupied(false)
                             .build();
                     pgBedRepository.save(bed);
@@ -201,10 +202,10 @@ public class OwnerPropertyService {
         PGRoom savedRoom = pgRoomRepository.save(pgRoom);
 
         // Create beds for the room
-        for (int i = 1; i <= totalBeds; i++) {
+        for (int i = 0; i < totalBeds; i++) {
             PGBed bed = PGBed.builder()
                     .pgRoom(savedRoom)
-                    .bedNumber(i)
+                    .bedNumber(generateBedIdentifier(i))
                     .isOccupied(false)
                     .build();
             pgBedRepository.save(bed);
@@ -224,6 +225,17 @@ public class OwnerPropertyService {
             default:
                 return 1;
         }
+    }
+
+    /**
+     * Generates character-based bed identifiers (A, B, C, D, etc.)
+     * @param bedIndex - 0-based index of the bed
+     * @return Character identifier (A, B, C, etc.)
+     */
+    private String generateBedIdentifier(int bedIndex) {
+        // Convert 0-based index to character (0 -> A, 1 -> B, etc.)
+        char bedChar = (char) ('A' + bedIndex);
+        return String.valueOf(bedChar);
     }
 
     public void deletePGRoom(Long propertyId, Long roomId, String ownerUsername) {
@@ -331,7 +343,7 @@ public class OwnerPropertyService {
             flatDetailsRepository.findByPropertyId(property.getId())
                     .ifPresent(flatDetails -> builder.flatDetails(mapToResponse(flatDetails)));
         } else if (property.getPropertyType() == PropertyType.PG) {
-            pgDetailsRepository.findByPropertyId(property.getId())
+            pgDetailsRepository.findByPropertyIdWithRooms(property.getId())
                     .ifPresent(pgDetails -> builder.pgDetails(mapToResponse(pgDetails)));
         }
 
@@ -358,9 +370,12 @@ public class OwnerPropertyService {
     }
 
     private PGDetailsResponse mapToResponse(PGDetails pgDetails) {
-        List<PGRoomResponse> roomResponses = pgDetails.getRooms().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+        List<PGRoomResponse> roomResponses = new ArrayList<>();
+        if (pgDetails.getRooms() != null) {
+            roomResponses = pgDetails.getRooms().stream()
+                    .map(this::mapToResponse)
+                    .collect(Collectors.toList());
+        }
 
         return PGDetailsResponse.builder()
                 .id(pgDetails.getId())

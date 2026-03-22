@@ -8,6 +8,6 @@ import lombok.Builder;
 public class PGBedResponse {
 
     private Long id;
-    private Integer bedNumber;
+    private String bedNumber;
     private Boolean isOccupied;
 }

@@ -16,7 +16,8 @@ import {
   LogOut,
   User,
   Plus,
-  Calendar
+  Calendar,
+  BookOpen
 } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
@@ -49,6 +50,7 @@ export const Navbar: React.FC = () => {
         return [
           { label: 'Dashboard', path: '/tenant/dashboard', icon: Home },
           { label: 'Properties', path: '/properties', icon: Building },
+          { label: 'My Bookings', path: '/tenant/bookings', icon: BookOpen },
           { label: 'Guest Pass', path: '/guest-pass', icon: QrCode },
         ];
       case 'OWNER':

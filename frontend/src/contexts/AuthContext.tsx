@@ -12,6 +12,13 @@ interface User {
   fullName?: string;
   phoneNumber?: string;
   roomNumber?: string;
+  // Owner-specific fields
+  isProfileComplete?: boolean;
+  isVerified?: boolean;
+  isOnlinePaymentEnabled?: boolean;
+  verificationStatus?: string;
+  razorpayOnboardingStatus?: string;
+  razorpayAccountId?: string;
 }
 
 interface AuthContextType {
@@ -21,6 +28,7 @@ interface AuthContextType {
   logout: () => void;
   loading: boolean;
   redirectToDashboard: () => string;
+  updateUser: (userData: Partial<User>) => void;
 }
 
 interface RegisterData {
@@ -156,6 +164,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateUser = (userData: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...userData };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   const redirectToDashboard = (): string => {
     if (!user) return '/login';
     
@@ -180,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     logout,
     loading,
     redirectToDashboard,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -23,4 +23,8 @@ public class OwnerProfileResponseDTO {
     private Boolean isVerified;
     private String verificationStatus;
     private String rejectionReason;
+    // Razorpay fields
+    private String razorpayAccountId;
+    private Boolean isOnlinePaymentEnabled;
+    private String razorpayOnboardingStatus;
 }

@@ -95,96 +95,78 @@ export const OwnerProperties: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {!showForm ? (
         <>
-          {/* Profile Status Alert */}
-          {!profileStatus.isProfileComplete && (
-            <Alert className="mb-6 border-orange-200 bg-orange-50">
-              <AlertTriangle className="h-4 w-4 text-orange-600" />
-              <AlertDescription className="text-orange-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong>Complete Your Profile:</strong> Your profile is {profileStatus.completionPercentage}% complete. 
-                    Complete your profile and upload required documents to start adding properties.
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/owner/profile')}
-                    className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100"
-                  >
-                    <User className="w-4 h-4 mr-1" />
-                    Complete Profile
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
+          {/* Profile Status Alerts - Only show if profile is not both complete AND verified */}
+          {!(profileStatus.isProfileComplete && profileStatus.isVerified) && (
+            <>
+              {!profileStatus.isProfileComplete && (
+                <Alert className="mb-6 border-orange-200 bg-orange-50">
+                  <AlertTriangle className="h-4 w-4 text-orange-600" />
+                  <AlertDescription className="text-orange-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <strong>Complete Your Profile:</strong> Your profile is {profileStatus.completionPercentage}% complete. 
+                        Complete your profile and upload required documents to start adding properties.
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/owner/profile')}
+                        className="ml-4 border-orange-300 text-orange-700 hover:bg-orange-100"
+                      >
+                        <User className="w-4 h-4 mr-1" />
+                        Complete Profile
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          {profileStatus.isProfileComplete && !profileStatus.isVerified && profileStatus.verificationStatus !== 'REJECTED' && (
-            <Alert className="mb-6 border-yellow-200 bg-yellow-50">
-              <Shield className="h-4 w-4 text-yellow-600" />
-              <AlertDescription className="text-yellow-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong>Verification Pending:</strong> Your profile is complete and under admin review. 
-                    You'll be able to add properties once your documents are verified.
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/owner/profile')}
-                    className="ml-4 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
-                  >
-                    <Shield className="w-4 h-4 mr-1" />
-                    View Profile
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
+              {profileStatus.isProfileComplete && !profileStatus.isVerified && profileStatus.verificationStatus !== 'REJECTED' && (
+                <Alert className="mb-6 border-yellow-200 bg-yellow-50">
+                  <Shield className="h-4 w-4 text-yellow-600" />
+                  <AlertDescription className="text-yellow-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <strong>Verification Pending:</strong> Your profile is complete and under admin review. 
+                        You'll be able to add properties once your documents are verified.
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/owner/profile')}
+                        className="ml-4 border-yellow-300 text-yellow-700 hover:bg-yellow-100"
+                      >
+                        <Shield className="w-4 h-4 mr-1" />
+                        View Profile
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
 
-          {profileStatus.verificationStatus === 'REJECTED' && profileStatus.rejectionReason && (
-            <Alert className="mb-6 border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong>Verification Rejected:</strong> Your profile verification was rejected. 
-                    Please review the feedback and update your profile to resubmit for verification.
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/owner/profile')}
-                    className="ml-4 border-red-300 text-red-700 hover:bg-red-100"
-                  >
-                    <User className="w-4 h-4 mr-1" />
-                    Update Profile
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {profileStatus.isProfileComplete && profileStatus.isVerified && (
-            <Alert className="mb-6 border-green-200 bg-green-50">
-              <CheckCircle className="h-4 w-4 text-green-600" />
-              <AlertDescription className="text-green-800">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <strong>Profile Verified:</strong> Your profile is complete and verified. You can now add and manage properties!
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => navigate('/owner/profile')}
-                    className="ml-4 border-green-300 text-green-700 hover:bg-green-100"
-                  >
-                    <User className="w-4 h-4 mr-1" />
-                    View Profile
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
+              {profileStatus.verificationStatus === 'REJECTED' && profileStatus.rejectionReason && (
+                <Alert className="mb-6 border-red-200 bg-red-50">
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertDescription className="text-red-800">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <strong>Verification Rejected:</strong> Your profile verification was rejected. 
+                        Please review the feedback and update your profile to resubmit for verification.
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/owner/profile')}
+                        className="ml-4 border-red-300 text-red-700 hover:bg-red-100"
+                      >
+                        <User className="w-4 h-4 mr-1" />
+                        Update Profile
+                      </Button>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
           )}
 
           <div className="flex items-center justify-between mb-8">

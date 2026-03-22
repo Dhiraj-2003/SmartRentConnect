@@ -47,4 +47,7 @@ public class FlatDetails {
     @NotBlank(message = "Flat number is required")
     @Column(name = "flatNumber", nullable = false, length = 20)
     private String flatNumber;
+
+    @Column(name = "isOccupied", nullable = false)
+    private Boolean isOccupied = false;
 }

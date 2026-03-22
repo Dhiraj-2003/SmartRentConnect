@@ -13,7 +13,7 @@ public class BookingResponse {
     private Long roomId;
     private String roomNumber;
     private Long bedId;
-    private Integer bedNumber;
+    private String bedNumber;
     private Long tenantId;
     private String tenantName;
     private String bookingType; // FLAT or PG_BED

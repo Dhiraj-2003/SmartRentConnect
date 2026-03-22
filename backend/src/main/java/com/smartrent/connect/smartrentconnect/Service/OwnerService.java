@@ -160,6 +160,11 @@ public class OwnerService {
         dto.setVerificationStatus(owner.getVerificationStatus());
         dto.setRejectionReason(owner.getRejectionReason());
         
+        // Add Razorpay fields
+        dto.setRazorpayAccountId(owner.getRazorpayAccountId());
+        dto.setIsOnlinePaymentEnabled(owner.getIsOnlinePaymentEnabled());
+        dto.setRazorpayOnboardingStatus(owner.getRazorpayOnboardingStatus());
+        
         System.out.println("Generated URLs - Profile: " + dto.getProfileImage() + 
                           ", Aadhar: " + dto.getAadharCardImage() + 
                           ", PAN: " + dto.getPanCardImage());

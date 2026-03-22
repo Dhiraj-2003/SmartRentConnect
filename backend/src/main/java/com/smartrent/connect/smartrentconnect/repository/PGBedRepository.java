@@ -17,7 +17,7 @@ public interface PGBedRepository extends JpaRepository<PGBed, Long> {
     
     List<PGBed> findByPgRoomIdAndIsOccupied(Long pgRoomId, Boolean isOccupied);
     
-    Optional<PGBed> findByPgRoomIdAndBedNumber(Long pgRoomId, Integer bedNumber);
+    Optional<PGBed> findByPgRoomIdAndBedNumber(Long pgRoomId, String bedNumber);
     
     @Query("SELECT pb FROM PGBed pb WHERE pb.pgRoom.pgDetails.property.id = :propertyId")
     List<PGBed> findByPropertyId(@Param("propertyId") Long propertyId);
