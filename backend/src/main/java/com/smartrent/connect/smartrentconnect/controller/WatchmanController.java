@@ -1,7 +1,7 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
 import com.smartrent.connect.smartrentconnect.dto.GuestPassResponse;
-import com.smartrent.connect.smartrentconnect.Service.GuestPassService;
+import com.smartrent.connect.smartrentconnect.service.GuestPassService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

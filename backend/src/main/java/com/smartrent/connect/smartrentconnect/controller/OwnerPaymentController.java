@@ -4,7 +4,7 @@ import com.smartrent.connect.smartrentconnect.dto.RazorpayOnboardingRequest;
 import com.smartrent.connect.smartrentconnect.entity.Owner;
 import com.smartrent.connect.smartrentconnect.entity.User;
 import com.smartrent.connect.smartrentconnect.repository.OwnerRepository;
-import com.smartrent.connect.smartrentconnect.Service.OwnerPaymentService;
+import com.smartrent.connect.smartrentconnect.service.OwnerPaymentService;
 import com.smartrent.connect.smartrentconnect.security.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

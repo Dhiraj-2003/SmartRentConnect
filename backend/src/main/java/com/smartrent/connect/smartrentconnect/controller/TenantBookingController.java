@@ -2,13 +2,11 @@ package com.smartrent.connect.smartrentconnect.controller;
 
 import com.smartrent.connect.smartrentconnect.entity.*;
 import com.smartrent.connect.smartrentconnect.dto.BookingPaymentDTO;
-import com.smartrent.connect.smartrentconnect.dto.TenantBookingsDTO;
 import com.smartrent.connect.smartrentconnect.repository.FlatDetailsRepository;
 import com.smartrent.connect.smartrentconnect.repository.PGBedRepository;
-import com.smartrent.connect.smartrentconnect.Service.BookingService;
+import com.smartrent.connect.smartrentconnect.service.BookingService;
 import com.smartrent.connect.smartrentconnect.security.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;

@@ -2,13 +2,12 @@ package com.smartrent.connect.smartrentconnect.controller;
 
 import com.smartrent.connect.smartrentconnect.dto.OwnerProfileResponseDTO;
 import com.smartrent.connect.smartrentconnect.dto.OwnerProfileUpdateDTO;
-import com.smartrent.connect.smartrentconnect.Service.OwnerService;
+import com.smartrent.connect.smartrentconnect.service.OwnerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 

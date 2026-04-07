@@ -19,6 +19,12 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     
     @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING' AND b.tenant.id = :tenantId")
     List<Booking> findPendingBookingsByTenant(Long tenantId);
+
+    @Query("SELECT b FROM Booking b WHERE b.status = 'PENDING' AND b.propertyId IN (SELECT p.id FROM Property p WHERE p.owner.id = :ownerId)")
+    List<Booking> findPendingBookingsByOwner(Long ownerId);
+    
+    @Query("SELECT b FROM Booking b WHERE b.propertyId IN (SELECT p.id FROM Property p WHERE p.owner.id = :ownerId)")
+    List<Booking> findByPropertyOwner(Long ownerId);
     
     @Query("SELECT b FROM Booking b WHERE b.flatDetails.id = :flatDetailsId AND b.status = 'PENDING'")
     Optional<Booking> findPendingBookingByFlatDetailsId(Long flatDetailsId);

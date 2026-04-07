@@ -3,7 +3,7 @@ package com.smartrent.connect.smartrentconnect.controller;
 import com.smartrent.connect.smartrentconnect.dto.PropertyResponse;
 import com.smartrent.connect.smartrentconnect.dto.PropertyImageResponse;
 import com.smartrent.connect.smartrentconnect.dto.PropertyDocumentResponse;
-import com.smartrent.connect.smartrentconnect.Service.AdminPropertyService;
+import com.smartrent.connect.smartrentconnect.service.AdminPropertyService;
 import com.smartrent.connect.smartrentconnect.enums.PropertyStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,6 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
-import com.smartrent.connect.smartrentconnect.Service.CloudinaryService;
+import com.smartrent.connect.smartrentconnect.service.CloudinaryService;
 import com.smartrent.connect.smartrentconnect.security.CustomUserDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

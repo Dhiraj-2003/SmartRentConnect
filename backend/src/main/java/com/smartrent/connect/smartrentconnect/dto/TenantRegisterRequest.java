@@ -35,16 +35,8 @@ public class TenantRegisterRequest {
     @Pattern(regexp = "^\\d{10}$", message = "Phone number must be 10 digits")
     private String phoneNumber;
 
-    @NotBlank(message = "Room number is required")
-    @Size(max = 20)
-    @Pattern(regexp = "^[A-Za-z0-9\\-\\/ ]+$", message = "Room number may contain letters, numbers, space, -, /")
-    private String roomNumber;
-
     @NotBlank(message = "Address is required")
     @Size(max = 255)
     private String address;
 
-    @URL(message = "Profile image must be a valid URL")
-    @Size(max = 500)
-    private String profileImage; // optional
 }

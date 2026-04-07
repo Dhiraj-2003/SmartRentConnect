@@ -1,7 +1,7 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
 
-import com.smartrent.connect.smartrentconnect.Service.AuthService;
+import com.smartrent.connect.smartrentconnect.service.AuthService;
 import com.smartrent.connect.smartrentconnect.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

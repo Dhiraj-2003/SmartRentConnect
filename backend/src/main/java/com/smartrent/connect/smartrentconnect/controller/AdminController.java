@@ -1,6 +1,6 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
-import com.smartrent.connect.smartrentconnect.Service.AdminService;
+import com.smartrent.connect.smartrentconnect.service.AdminService;
 import com.smartrent.connect.smartrentconnect.dto.*;
 import com.smartrent.connect.smartrentconnect.entity.GuestPass;
 import lombok.RequiredArgsConstructor;

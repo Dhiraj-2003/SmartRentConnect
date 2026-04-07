@@ -66,22 +66,10 @@ export const AdminStats: React.FC<AdminStatsProps> = ({ stats }) => {
       icon: Clock, 
       color: 'warning' as const 
     },
-    { 
-      title: 'Monthly Revenue', 
-      value: `₹${stats.monthlyRevenue.toLocaleString()}`, 
-      icon: CreditCard, 
-      color: 'success' as const 
-    },
-    { 
-      title: 'Average Rating', 
-      value: stats.averageRating.toFixed(1), 
-      icon: Star, 
-      color: 'primary' as const 
-    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
       {statCards.map((stat, index) => (
         <StatCard
           key={index}

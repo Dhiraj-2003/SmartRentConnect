@@ -17,7 +17,6 @@ export const Register: React.FC = () => {
     confirmPassword: '',
     role: '' as 'tenant' | 'owner' | 'admin' | 'watchman',
     phoneNumber: '',
-    roomNumber: '',
     address: '',
     businessName: '',
     gstNumber: '',
@@ -139,17 +138,6 @@ export const Register: React.FC = () => {
         {/* Role-specific fields */}
         {formData.role === 'tenant' && (
           <>
-            <div>
-              <Label htmlFor="roomNumber">Room Number</Label>
-              <Input
-                id="roomNumber"
-                type="text"
-                value={formData.roomNumber}
-                onChange={(e) => handleChange('roomNumber', e.target.value)}
-                placeholder="Enter your room number"
-                className="mt-1"
-              />
-            </div>
             <div>
               <Label htmlFor="address">Address</Label>
               <Input

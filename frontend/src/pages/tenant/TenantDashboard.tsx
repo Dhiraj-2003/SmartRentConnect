@@ -13,18 +13,47 @@ import {
   Plus,
   Search 
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+
+interface TenantCurrentProperty {
+  historyId: number;
+  propertyId: number;
+  propertyName: string;
+  propertyType: string;
+  flatNumber?: string;
+  bedNumber?: string;
+  roomNumber?: string;
+  address: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  monthlyRent: number;
+  depositAmount: number;
+  occupancyStartDate: string;
+  nextRentDueDate: string;
+  lastPaidDate?: string;
+  status: string;
+  propertyImage?: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+}
 
 interface DashboardData {
-  currentProperty?: any;
+  currentProperties: TenantCurrentProperty[];
+  totalProperties: number;
+  activeProperties: number;
+  totalMonthlyRent: number;
+  totalDepositPaid: number;
   pendingPayments: number;
   openComplaints: number;
   guestPasses: number;
-  recommendedProperties: any[];
+  recentProperties: TenantCurrentProperty[];
 }
 
 export const TenantDashboard: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -45,8 +74,29 @@ export const TenantDashboard: React.FC = () => {
     }
   };
 
+  // Get room/flat info from current properties
+  const getCurrentRoomInfo = () => {
+    if (!dashboardData?.currentProperties || dashboardData.currentProperties.length === 0) {
+      return 'Not assigned';
+    }
+    
+    const currentProperty = dashboardData.currentProperties[0];
+    if (currentProperty.propertyType === 'FLAT') {
+      return `Flat ${currentProperty.flatNumber}`;
+    } else if (currentProperty.propertyType === 'PG') {
+      return `Room ${currentProperty.roomNumber}, Bed ${currentProperty.bedNumber}`;
+    }
+    return 'Not assigned';
+  };
+
+  // Handle complaint navigation with property data
+  const handleFileComplaint = () => {
+    // Navigate to complaints page
+    navigate('/complaints');
+  };
+
   const stats = [
-    { title: 'Current Property', value: dashboardData?.currentProperty ? '1' : '0', icon: Home, color: 'primary' as const },
+    { title: 'Active Properties', value: dashboardData?.activeProperties?.toString() || '0', icon: Home, color: 'primary' as const },
     { title: 'Pending Payments', value: `₹${dashboardData?.pendingPayments?.toLocaleString() || '0'}`, icon: CreditCard, color: 'warning' as const },
     { title: 'Open Complaints', value: dashboardData?.openComplaints?.toString() || '0', icon: MessageCircle, color: 'destructive' as const },
     { title: 'Guest Passes', value: dashboardData?.guestPasses?.toString() || '0', icon: QrCode, color: 'success' as const },
@@ -68,7 +118,7 @@ export const TenantDashboard: React.FC = () => {
           Welcome back, {user?.fullName || user?.username}!
         </h1>
         <p className="text-muted-foreground">
-          Room: {user?.roomNumber || 'Not assigned'} • Manage your rental experience
+          {getCurrentRoomInfo()} • Manage your rental experience
         </p>
       </div>
 
@@ -101,12 +151,10 @@ export const TenantDashboard: React.FC = () => {
               <span className="text-sm">Create Guest Pass</span>
             </Button>
           </Link>
-          <Link to="/complaints">
-            <Button variant="outline" className="w-full flex flex-col h-20 space-y-2">
-              <MessageCircle className="w-5 h-5" />
-              <span className="text-sm">File Complaint</span>
-            </Button>
-          </Link>
+          <Button variant="outline" className="w-full flex flex-col h-20 space-y-2" onClick={handleFileComplaint}>
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-sm">File Complaint</span>
+          </Button>
           <Link to="/payments">
             <Button variant="outline" className="w-full flex flex-col h-20 space-y-2">
               <CreditCard className="w-5 h-5" />
@@ -116,23 +164,77 @@ export const TenantDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Recommended Properties */}
-      {dashboardData?.recommendedProperties && dashboardData.recommendedProperties.length > 0 && (
+      {/* Current Properties */}
+      {dashboardData?.currentProperties && dashboardData.currentProperties.length > 0 && (
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-foreground">Recommended Properties</h2>
+            <h2 className="text-xl font-semibold text-foreground">Your Current Properties</h2>
             <Link to="/properties">
               <Button variant="outline">View All</Button>
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {dashboardData.recommendedProperties.map((property) => (
-              <PropertyCard
-                key={property.id}
-                property={property}
-                onBook={(id) => console.log('Book property:', id)}
-                onView={(id) => console.log('View property:', id)}
-              />
+            {dashboardData.currentProperties.map((property) => (
+              <div key={property.historyId} className="bg-card rounded-lg shadow-card border border-border p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{property.propertyName}</h3>
+                    <p className="text-sm text-muted-foreground">{property.propertyType}</p>
+                  </div>
+                  {property.propertyImage && (
+                    <img src={property.propertyImage} alt={property.propertyName} className="w-16 h-16 rounded-lg object-cover" />
+                  )}
+                </div>
+                <div className="space-y-2 text-sm">
+                  <p className="text-muted-foreground">
+                    {property.address}, {property.city}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {property.propertyType === 'FLAT' ? `Flat ${property.flatNumber}` : `Room ${property.roomNumber}, Bed ${property.bedNumber}`}
+                  </p>
+                  <p className="text-muted-foreground">Owner: {property.ownerName}</p>
+                  <p className="text-muted-foreground">Rent: ₹{property.monthlyRent.toLocaleString()}/month</p>
+                  <p className="text-muted-foreground">Status: <span className="text-green-600">{property.status}</span></p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recent Properties */}
+      {dashboardData?.recentProperties && dashboardData.recentProperties.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-semibold text-foreground">Recent Properties</h2>
+            <Link to="/properties">
+              <Button variant="outline">View All</Button>
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {dashboardData.recentProperties.map((property) => (
+              <div key={property.historyId} className="bg-card rounded-lg shadow-card border border-border p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-foreground">{property.propertyName}</h3>
+                    <p className="text-sm text-muted-foreground">{property.propertyType}</p>
+                  </div>
+                  {property.propertyImage && (
+                    <img src={property.propertyImage} alt={property.propertyName} className="w-16 h-16 rounded-lg object-cover" />
+                  )}
+                </div>
+                <div className="space-y-2 text-sm">
+                  <p className="text-muted-foreground">
+                    {property.address}, {property.city}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {property.propertyType === 'FLAT' ? `Flat ${property.flatNumber}` : `Room ${property.roomNumber}, Bed ${property.bedNumber}`}
+                  </p>
+                  <p className="text-muted-foreground">Owner: {property.ownerName}</p>
+                  <p className="text-muted-foreground">Rent: ₹{property.monthlyRent.toLocaleString()}/month</p>
+                  <p className="text-muted-foreground">Status: <span className="text-blue-600">{property.status}</span></p>
+                </div>
+              </div>
             ))}
           </div>
         </div>

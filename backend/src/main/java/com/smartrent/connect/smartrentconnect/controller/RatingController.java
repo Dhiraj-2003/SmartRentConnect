@@ -2,12 +2,11 @@ package com.smartrent.connect.smartrentconnect.controller;
 
 import com.smartrent.connect.smartrentconnect.dto.RatingRequest;
 import com.smartrent.connect.smartrentconnect.dto.RatingResponse;
-import com.smartrent.connect.smartrentconnect.Service.RatingService;
+import com.smartrent.connect.smartrentconnect.service.RatingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;

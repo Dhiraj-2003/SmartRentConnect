@@ -1,6 +1,6 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
-import com.smartrent.connect.smartrentconnect.Service.PGRoomGenerationService;
+import com.smartrent.connect.smartrentconnect.service.PGRoomGenerationService;
 import com.smartrent.connect.smartrentconnect.dto.BulkRoomGenerationRequest;
 import com.smartrent.connect.smartrentconnect.dto.BulkRoomGenerationResponse;
 import lombok.RequiredArgsConstructor;

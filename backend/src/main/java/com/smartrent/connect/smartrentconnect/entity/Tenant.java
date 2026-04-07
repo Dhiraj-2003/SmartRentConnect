@@ -10,7 +10,8 @@ import lombok.*;
 @Table(name = "tenants")
 @NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
 public class Tenant extends User {
 
     @NotBlank(message = "Full name is required")
@@ -24,9 +25,5 @@ public class Tenant extends User {
     @NotBlank(message = "Address is required")
     @Column(name = "address")
     private String address;
-
-    // Note: profileImage is now inherited from User entity
-    // @Column(name = "profile_image")
-    // private String profileImage; // URL - REMOVED, using inherited field
 
 }

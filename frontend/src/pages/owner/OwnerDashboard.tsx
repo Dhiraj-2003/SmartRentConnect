@@ -451,18 +451,18 @@ export const OwnerDashboard: React.FC = () => {
           <Button 
             variant="outline" 
             className="w-full flex flex-col h-20 space-y-2"
-            onClick={() => navigate('/owner/tenants')}
+            onClick={() => navigate('/owner/activity')}
           >
-            <Users className="w-5 h-5" />
-            <span className="text-sm">Manage Tenants</span>
+            <Calendar className="w-5 h-5" />
+            <span className="text-sm">Complaints</span>
           </Button>
           <Button 
             variant="outline" 
             className="w-full flex flex-col h-20 space-y-2"
-            onClick={() => navigate('/owner/activity')}
+            onClick={() => navigate('/owner/tenants')}
           >
-            <Calendar className="w-5 h-5" />
-            <span className="text-sm">Activity</span>
+            <Users className="w-5 h-5" />
+            <span className="text-sm">Manage Tenants</span>
           </Button>
           <Button 
             variant="outline" 

@@ -1,8 +1,8 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
-import com.smartrent.connect.smartrentconnect.Service.PropertyMediaService;
+import com.smartrent.connect.smartrentconnect.service.PropertyMediaService;
 import com.smartrent.connect.smartrentconnect.dto.*;
-import com.smartrent.connect.smartrentconnect.Service.OwnerPropertyService;
+import com.smartrent.connect.smartrentconnect.service.OwnerPropertyService;
 import com.smartrent.connect.smartrentconnect.entity.Property;
 import com.smartrent.connect.smartrentconnect.enums.DocumentType;
 import com.fasterxml.jackson.databind.ObjectMapper;

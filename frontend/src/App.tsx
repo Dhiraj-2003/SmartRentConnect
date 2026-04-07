@@ -14,7 +14,7 @@ import { AddProperty } from '@/pages/owner/AddProperty';
 import { MyProperties } from '@/pages/owner/MyProperties';
 import { OwnerProperties } from '@/pages/owner/OwnerProperties';
 import { OwnerRevenue } from '@/pages/owner/OwnerRevenue';
-import { OwnerActivity } from '@/pages/owner/OwnerActivity';
+import { OwnerComplaints } from '@/pages/owner/OwnerComplaints';
 import { OwnerTenants } from '@/pages/owner/OwnerTenants';
 import { OwnerProfile } from '@/pages/owner/OwnerProfile';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
@@ -28,6 +28,7 @@ import { BookPG } from '@/pages/tenant/BookPG';
 import { PaymentPage } from '@/pages/tenant/PaymentPage';
 import { TenantBookings } from '@/pages/tenant/TenantBookings';
 import { Properties } from './pages/tenant/Properties';
+import { TenantComplaints } from '@/components/tenant/TenantComplaints';
 import { VerifyPass } from '@/pages/watchman/VerifyPass';
 import NotFound from "./pages/NotFound";
 import 'react-toastify/dist/ReactToastify.css';
@@ -163,6 +164,12 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
         
+        <Route path="/complaints" element={
+          <ProtectedRoute allowedRoles={['TENANT']}>
+            <TenantComplaints />
+          </ProtectedRoute>
+        } />
+        
         <Route path="/book/flat/:id" element={
           <ProtectedRoute allowedRoles={['TENANT']}>
             <BookFlat />
@@ -220,7 +227,7 @@ const AppContent: React.FC = () => {
         
         <Route path="/owner/activity" element={
           <ProtectedRoute allowedRoles={['OWNER']}>
-            <OwnerActivity />
+            <OwnerComplaints />
           </ProtectedRoute>
         } />
         

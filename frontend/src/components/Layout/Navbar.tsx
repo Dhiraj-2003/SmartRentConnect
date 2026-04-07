@@ -51,6 +51,7 @@ export const Navbar: React.FC = () => {
           { label: 'Dashboard', path: '/tenant/dashboard', icon: Home },
           { label: 'Properties', path: '/properties', icon: Building },
           { label: 'My Bookings', path: '/tenant/bookings', icon: BookOpen },
+          { label: 'My Complaints', path: '/complaints', icon: FileText },
           { label: 'Guest Pass', path: '/guest-pass', icon: QrCode },
         ];
       case 'OWNER':
@@ -58,7 +59,7 @@ export const Navbar: React.FC = () => {
           { label: 'Dashboard', path: '/owner/dashboard', icon: Home },
           { label: 'Properties', path: '/owner/properties', icon: Building },
           { label: 'Revenue', path: '/owner/revenue', icon: CreditCard },
-          { label: 'Activity', path: '/owner/activity', icon: Calendar },
+          { label: 'Complaints', path: '/owner/activity', icon: Calendar },
           { label: 'Tenants', path: '/owner/tenants', icon: Users },
           { label: 'Profile', path: '/owner/profile', icon: User },
         ];

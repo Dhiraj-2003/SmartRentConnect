@@ -266,6 +266,11 @@ export const ownerAPI = {
     page?: number;
     size?: number;
   }) => api.get('/owner/tenants', { params }),
+  getPendingCashPayments: () => api.get('/owner/tenants/pending-cash-payments'),
+  
+  confirmCashPayment: (tenantId: string) => api.post(`/owner/tenants/${tenantId}/confirm-cash-payment`),
+  rejectCashPayment: (tenantId: string) => api.post(`/owner/tenants/${tenantId}/reject-cash-payment`),
+  markTenantVacated: (tenantId: string) => api.post(`/owner/tenants/${tenantId}/mark-vacated`),
   
   // Revenue Reports
   getRevenueReport: () => api.get('/owner/revenue-report'),
@@ -476,7 +481,7 @@ export const createOptimizedCloudinaryUrl = (url: string, options: {
 // Tenant Property API
 export const tenantAPI = {
   // Dashboard
-  getDashboard: () => api.get('/tenant/dashboard'),
+  getDashboard: () => api.get('/tenant/dashboard/data'),
   
   // Property Browsing
   getAllProperties: () => api.get('/tenant/properties'),
@@ -490,6 +495,46 @@ export const tenantAPI = {
   }) => api.get('/tenant/properties', { params }),
   
   getPropertyById: (id: string) => api.get(`/tenant/properties/${id}`),
+  
+  // Current Properties & Complaints
+  getCurrentProperties: () => api.get('/tenant/properties/current'),
+  getComplaints: () => api.get('/tenant/complaints'),
+  createComplaint: (data: {
+    title: string;
+    description: string;
+    category: string;
+    priority: string;
+    selectedPropertyId: number;
+    currentProperties?: any[];
+    images: File[];
+  }) => {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    formData.append('description', data.description);
+    formData.append('category', data.category);
+    formData.append('priority', data.priority);
+    formData.append('propertyId', data.selectedPropertyId.toString());
+    
+    // Add flatDetailsId and pgBedId if available
+    const selectedProperty = data.currentProperties?.find((p: any) => p.propertyId === data.selectedPropertyId);
+    if (selectedProperty) {
+      if (selectedProperty.propertyType === 'FLAT' && selectedProperty.flatDetailsId) {
+        formData.append('flatDetailsId', selectedProperty.flatDetailsId.toString());
+      } else if (selectedProperty.propertyType === 'PG' && selectedProperty.pgBedId) {
+        formData.append('pgBedId', selectedProperty.pgBedId.toString());
+      }
+    }
+    
+    data.images.forEach((image) => {
+      formData.append('images', image);
+    });
+
+    return api.post('/tenant/complaints', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  },
   
   // Property Media
   getPropertyImages: (id: string) => api.get(`/tenant/properties/${id}/images`),
@@ -524,6 +569,28 @@ export const tenantAPI = {
     api.post(`/tenant/payment/cash/${bookingId}`),
   getPaymentStatus: (bookingId: string) => 
     api.get(`/tenant/payment/status/${bookingId}`),
+};
+
+// Owner Complaint API
+export const ownerComplaintAPI = {
+  // Get all complaints for owner
+  getComplaints: () => api.get('/owner/complaints'),
+  
+  // Get complaint by ID
+  getComplaintById: (id: string) => api.get(`/owner/complaints/${id}`),
+  
+  // Update complaint status
+  updateStatus: (id: string, status: string) => 
+    api.put(`/owner/complaints/${id}/status`, { status }),
+  
+  // Respond to complaint
+  respondToComplaint: (id: string, responseMessage: string) => 
+    api.put(`/owner/complaints/${id}/respond`, { responseMessage }),
+  
+  // Get complaint categories, priorities, statuses
+  getCategories: () => api.get('/owner/complaints/categories'),
+  getPriorities: () => api.get('/owner/complaints/priorities'),
+  getStatuses: () => api.get('/owner/complaints/statuses'),
 };
 
 // Rating API
