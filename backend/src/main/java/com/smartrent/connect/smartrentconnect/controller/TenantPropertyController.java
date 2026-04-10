@@ -117,7 +117,7 @@ public class TenantPropertyController {
         private int activeProperties;
         private double totalMonthlyRent;
         private double totalDepositPaid;
-        private int pendingPayments;
+        private double pendingPayments;
         private int openComplaints;
         private int guestPasses;
         private List<TenantCurrentPropertyDTO> recentProperties;

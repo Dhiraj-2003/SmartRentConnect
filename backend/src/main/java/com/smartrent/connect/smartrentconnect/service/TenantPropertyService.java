@@ -32,6 +32,9 @@ public class TenantPropertyService {
     private final OwnerPropertyService ownerPropertyService;
     private final TenantPropertyHistoryRepository tenantPropertyHistoryRepository;
     private final PropertyImageRepository propertyImageRepository;
+    private final ComplaintRepository complaintRepository;
+    private final GuestPassRepository guestPassRepository;
+    private final PaymentRepository paymentRepository;
 
     public String getTenantDashboard(String tenantUsername) {
         // For now, return a simple welcome message
@@ -139,10 +142,22 @@ public class TenantPropertyService {
                 .mapToDouble(TenantPropertyHistory::getDepositAmount)
                 .sum();
 
-        // TODO: Calculate actual pending payments, open complaints, guest passes
-        int pendingPayments = 0;
-        int openComplaints = 0;
-        int guestPasses = 0;
+        // Calculate actual pending payments, open complaints, guest passes by tenant_id
+        double pendingPayments = paymentRepository.findAll().stream()
+                .filter(payment -> payment.getBooking().getTenant().getId().equals(tenant.getId()))
+                .filter(payment -> payment.getPaymentStatus() == PaymentStatus.PENDING)
+                .mapToDouble(Payment::getAmount)
+                .sum();
+
+        int openComplaints = (int) complaintRepository.findAll().stream()
+                .filter(complaint -> complaint.getTenant().getId().equals(tenant.getId()))
+                .filter(complaint -> complaint.getStatus() == ComplaintStatus.OPEN || complaint.getStatus() == ComplaintStatus.IN_PROGRESS)
+                .count();
+
+        int guestPasses = (int) guestPassRepository.findAll().stream()
+                .filter(guestPass -> guestPass.getTenant().getId().equals(tenant.getId()))
+                .filter(guestPass -> guestPass.getStatus() == GuestPass.GuestPassStatus.ACTIVE)
+                .count();
 
         return TenantDashboardDataDTO.builder()
                 .currentProperties(currentProperties)
