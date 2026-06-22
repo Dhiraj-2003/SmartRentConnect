@@ -5,6 +5,10 @@ import { OwnerStats } from '@/components/owner/OwnerStats';
 import { PaymentEnablementBanner } from '@/components/owner/PaymentEnablementBanner';
 import { NewPropertyForm } from '@/components/owner/NewPropertyForm';
 import { OwnerDashboardChatbot } from '@/components/owner/OwnerDashboardChatbot';
+import { OccupancyRateChart } from '@/components/owner/OccupancyRateChart';
+import { PaymentTrendsChart } from '@/components/owner/PaymentTrendsChart';
+import { ComplaintAnalyticsChart } from '@/components/owner/ComplaintAnalyticsChart';
+import { PropertyPerformanceChart } from '@/components/owner/PropertyPerformanceChart';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -30,6 +34,7 @@ export const OwnerDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [dashboardStats, setDashboardStats] = useState<any>(null);
   const [revenueData, setRevenueData] = useState<any>(null);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showAddProperty, setShowAddProperty] = useState(false);
   const [profileStatus, setProfileStatus] = useState({
@@ -47,15 +52,15 @@ export const OwnerDashboard: React.FC = () => {
   const loadDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsResponse, profileResponse] = await Promise.all([
+      const [statsResponse, profileResponse, analyticsResponse] = await Promise.all([
         ownerAPI.getDashboardStats(),
-        ownerAPI.getProfile().catch(() => null) // Gracefully handle if profile not found
+        ownerAPI.getProfile().catch(() => null),
+        ownerAPI.getDashboardAnalytics().catch(() => null)
       ]);
 
       setDashboardStats(statsResponse.data);
       
       if (profileResponse) {
-        // Update user context with profile data including Razorpay fields
         updateUser({
           isProfileComplete: profileResponse.data.isProfileComplete || false,
           isVerified: profileResponse.data.isVerified || false,
@@ -65,13 +70,8 @@ export const OwnerDashboard: React.FC = () => {
           razorpayOnboardingStatus: profileResponse.data.razorpayOnboardingStatus || null,
         });
         
-        // Calculate completion percentage based on required fields
-        const requiredFields = [
-          'fullName', 'phone', 'address', 'city', 'state', 'pincode', 'dateOfBirth'
-        ];
-        const completedFields = requiredFields.filter(
-          field => !!profileResponse.data[field]
-        ).length;
+        const requiredFields = ['fullName', 'phone', 'address', 'city', 'state', 'pincode', 'dateOfBirth'];
+        const completedFields = requiredFields.filter(field => !!profileResponse.data[field]).length;
         const completionPercentage = Math.round((completedFields / requiredFields.length) * 100);
         
         setProfileStatus({
@@ -82,7 +82,6 @@ export const OwnerDashboard: React.FC = () => {
           completionPercentage
         });
       } else {
-        // If profile not found, set default values
         setProfileStatus({
           isProfileComplete: false,
           isVerified: false,
@@ -92,29 +91,24 @@ export const OwnerDashboard: React.FC = () => {
         });
       }
       
-      // Mock revenue data - in real app, this would come from API
-      setRevenueData({
-        monthlyRevenue: 45000,
-        monthlyGrowth: 12,
-        quarterlyRevenue: 125000,
-        quarterlyGrowth: 8,
-        averageMonthly: 41667,
-        yearlyRevenue: 500000,
-        yearlyGrowth: 15,
-        monthlyCollectionData: [
-          { month: 'Jul', collected: 38000, expected: 45000 },
-          { month: 'Aug', collected: 42000, expected: 45000 },
-          { month: 'Sep', collected: 45000, expected: 45000 },
-          { month: 'Oct', collected: 41000, expected: 45000 },
-          { month: 'Nov', collected: 43000, expected: 45000 },
-          { month: 'Dec', collected: 45000, expected: 45000 }
-        ]
-      });
+      if (analyticsResponse && analyticsResponse.data) {
+        setRevenueData(analyticsResponse.data.revenueAnalytics);
+        setAnalyticsData(analyticsResponse.data);
+      } else {
+        setRevenueData({
+          monthlyRevenue: 0,
+          monthlyGrowth: 0,
+          quarterlyRevenue: 0,
+          quarterlyGrowth: 0,
+          averageMonthly: 0,
+          yearlyRevenue: 0,
+          yearlyGrowth: 0,
+          monthlyCollectionData: []
+        });
+      }
     } catch (error: any) {
       console.error('Failed to load dashboard data:', error);
       toast.error('Failed to load dashboard data');
-      
-      // Set default stats if API fails
       setDashboardStats({
         totalProperties: 0,
         activeTenants: 0,
@@ -420,6 +414,38 @@ export const OwnerDashboard: React.FC = () => {
         </Card>
       </div>
 
+      {/* Analytics Charts */}
+      {analyticsData && (
+        <><div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+          <OccupancyRateChart
+            occupancyRate={analyticsData.occupancyAnalytics.currentOccupancyRate}
+            totalUnits={analyticsData.occupancyAnalytics.totalUnits}
+            occupiedUnits={analyticsData.occupancyAnalytics.occupiedUnits}
+            availableUnits={analyticsData.occupancyAnalytics.availableUnits}
+            occupancyTrend={analyticsData.occupancyAnalytics.occupancyTrend} />
+          <PaymentTrendsChart
+            totalPayments={analyticsData.paymentAnalytics.totalPayments}
+            successfulPayments={analyticsData.paymentAnalytics.successfulPayments}
+            failedPayments={analyticsData.paymentAnalytics.failedPayments}
+            pendingPayments={analyticsData.paymentAnalytics.pendingPayments}
+            successRate={analyticsData.paymentAnalytics.successRate}
+            totalAmount={analyticsData.paymentAnalytics.totalAmount}
+            paymentMethodBreakdown={analyticsData.paymentAnalytics.paymentMethodBreakdown}
+            paymentTrend={analyticsData.paymentAnalytics.paymentTrend} />
+        </div><div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <ComplaintAnalyticsChart
+              totalComplaints={analyticsData.complaintAnalytics.totalComplaints}
+              openComplaints={analyticsData.complaintAnalytics.openComplaints}
+              resolvedComplaints={analyticsData.complaintAnalytics.resolvedComplaints}
+              inProgressComplaints={analyticsData.complaintAnalytics.inProgressComplaints}
+              averageResolutionTime={analyticsData.complaintAnalytics.averageResolutionTime}
+              complaintsByCategory={analyticsData.complaintAnalytics.complaintsByCategory}
+              complaintsByStatus={analyticsData.complaintAnalytics.complaintsByStatus}
+              complaintTrend={analyticsData.complaintAnalytics.complaintTrend} />
+            <PropertyPerformanceChart properties={analyticsData.propertyPerformance} />
+          </div></>
+      )}
+
       {/* Quick Actions - Moved to Bottom */}
       <div className="bg-card rounded-lg shadow-card border border-border p-6">
         <h2 className="text-xl font-semibold text-foreground mb-4">Quick Actions</h2>
@@ -481,3 +507,12 @@ export const OwnerDashboard: React.FC = () => {
     </div>
   );
 };
+
+
+
+
+
+
+
+
+

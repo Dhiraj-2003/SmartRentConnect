@@ -45,7 +45,7 @@ interface PaymentData {
       phone: string;
       unitNumber: string;
       monthlyRent: number;
-      paymentStatus: 'paid' | 'pending' | 'overdue';
+      paymentStatus: 'paid' | 'pending' | 'overdue' | 'upcoming';
       paymentDate: string;
       dueDate: string;
     }>;
@@ -71,146 +71,38 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({ className = '' }
     try {
       setLoading(true);
       
-      // Mock payment data for demonstration
-      const mockData: PaymentData = {
-        pendingPayments: 3,
-        overduePayments: 2,
-        receivedThisMonth: 125000,
-        totalRevenue: 144000,
-        properties: [
-          {
-            id: 1,
-            title: 'Luxury Villa Complex',
-            address: '123 Main Street, Downtown',
-            monthlyRent: 75000,
-            overallStatus: 'all_paid',
-            image: property1Image,
-            tenants: [
-              {
-                id: 1,
-                name: 'John Smith',
-                email: 'john@example.com',
-                phone: '+91 9876543210',
-                unitNumber: 'A-101',
-                monthlyRent: 25000,
-                paymentStatus: 'paid',
-                paymentDate: '2024-01-05',
-                dueDate: '2024-01-01'
-              },
-              {
-                id: 2,
-                name: 'Alice Brown',
-                email: 'alice@example.com',
-                phone: '+91 9876543211',
-                unitNumber: 'A-102',
-                monthlyRent: 25000,
-                paymentStatus: 'paid',
-                paymentDate: '2024-01-03',
-                dueDate: '2024-01-01'
-              },
-              {
-                id: 3,
-                name: 'Robert Wilson',
-                email: 'robert@example.com',
-                phone: '+91 9876543212',
-                unitNumber: 'A-103',
-                monthlyRent: 25000,
-                paymentStatus: 'paid',
-                paymentDate: '2024-01-04',
-                dueDate: '2024-01-01'
-              }
-            ]
-          },
-          {
-            id: 2,
-            title: 'Modern Apartment Building',
-            address: '456 Oak Avenue, Midtown',
-            monthlyRent: 45000,
-            overallStatus: 'some_pending',
-            image: property2Image,
-            tenants: [
-              {
-                id: 4,
-                name: 'Sarah Johnson',
-                email: 'sarah@example.com',
-                phone: '+91 9876543213',
-                unitNumber: 'B-201',
-                monthlyRent: 15000,
-                paymentStatus: 'paid',
-                paymentDate: '2024-01-02',
-                dueDate: '2024-01-01'
-              },
-              {
-                id: 5,
-                name: 'Mike Davis',
-                email: 'mike@example.com',
-                phone: '+91 9876543214',
-                unitNumber: 'B-202',
-                monthlyRent: 15000,
-                paymentStatus: 'pending',
-                paymentDate: '',
-                dueDate: '2024-01-01'
-              },
-              {
-                id: 6,
-                name: 'Lisa Chen',
-                email: 'lisa@example.com',
-                phone: '+91 9876543215',
-                unitNumber: 'B-203',
-                monthlyRent: 15000,
-                paymentStatus: 'pending',
-                paymentDate: '',
-                dueDate: '2024-01-01'
-              }
-            ]
-          },
-          {
-            id: 3,
-            title: 'Downtown Studio Complex',
-            address: '789 Pine Road, Uptown',
-            monthlyRent: 24000,
-            overallStatus: 'overdue',
-            image: property1Image,
-            tenants: [
-              {
-                id: 7,
-                name: 'Tom Wilson',
-                email: 'tom@example.com',
-                phone: '+91 9876543216',
-                unitNumber: 'C-301',
-                monthlyRent: 8000,
-                paymentStatus: 'overdue',
-                paymentDate: '',
-                dueDate: '2023-12-01'
-              },
-              {
-                id: 8,
-                name: 'Emma Taylor',
-                email: 'emma@example.com',
-                phone: '+91 9876543217',
-                unitNumber: 'C-302',
-                monthlyRent: 8000,
-                paymentStatus: 'paid',
-                paymentDate: '2024-01-01',
-                dueDate: '2024-01-01'
-              },
-              {
-                id: 9,
-                name: 'James Miller',
-                email: 'james@example.com',
-                phone: '+91 9876543218',
-                unitNumber: 'C-303',
-                monthlyRent: 8000,
-                paymentStatus: 'overdue',
-                paymentDate: '',
-                dueDate: '2023-12-01'
-              }
-            ]
-          }
-        ]
+      // Fetch real payment data from API
+      const response = await ownerAPI.getRevenueData();
+      const apiData = response.data;
+
+      // Transform API data to match component interface
+      const transformedData: PaymentData = {
+        pendingPayments: apiData.pendingPayments || 0,
+        overduePayments: apiData.overduePayments || 0,
+        receivedThisMonth: apiData.receivedThisMonth || 0,
+        totalRevenue: apiData.totalRevenue || 0,
+        properties: (apiData.properties || []).map((property: any) => ({
+          id: property.id,
+          title: property.title,
+          address: property.address,
+          monthlyRent: property.monthlyRent,
+          overallStatus: property.overallStatus as 'all_paid' | 'some_pending' | 'overdue',
+          image: property.imageUrl,
+          tenants: (property.tenants || []).map((tenant: any) => ({
+            id: tenant.id,
+            name: tenant.name,
+            email: tenant.email,
+            phone: tenant.phone,
+            unitNumber: tenant.unitNumber,
+            monthlyRent: tenant.monthlyRent,
+            paymentStatus: tenant.paymentStatus as 'paid' | 'pending' | 'overdue' | 'upcoming',
+            paymentDate: tenant.paymentDate || '',
+            dueDate: tenant.dueDate || ''
+          }))
+        }))
       };
 
-      setPaymentData(mockData);
+      setPaymentData(transformedData);
     } catch (error: any) {
       console.error('Failed to load payment data:', error);
       toast.error('Failed to load payment data');
@@ -223,7 +115,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({ className = '' }
     toast.success('Payment report exported successfully');
   };
 
-  const getStatusBadge = (status: 'paid' | 'pending' | 'overdue') => {
+  const getStatusBadge = (status: 'paid' | 'pending' | 'overdue' | 'upcoming') => {
     switch (status) {
       case 'paid':
         return <Badge variant="default" className="bg-green-50 text-green-700 border-green-200"><CheckCircle className="w-3 h-3 mr-1" />Paid</Badge>;
@@ -231,6 +123,8 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({ className = '' }
         return <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 border-yellow-200"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
       case 'overdue':
         return <Badge variant="destructive" className="bg-red-50 text-red-700 border-red-200"><AlertCircle className="w-3 h-3 mr-1" />Overdue</Badge>;
+      case 'upcoming':
+        return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200"><Calendar className="w-3 h-3 mr-1" />Upcoming</Badge>;
       default:
         return null;
     }
@@ -580,7 +474,7 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({ className = '' }
                 
                 <div className="grid gap-4">
                   {selectedProperty.tenants.map((tenant) => {
-                    const getCardBackground = (status: 'paid' | 'pending' | 'overdue') => {
+                    const getCardBackground = (status: 'paid' | 'pending' | 'overdue' | 'upcoming') => {
                       switch (status) {
                         case 'paid':
                           return 'bg-green-50 border-green-200';
@@ -588,6 +482,8 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({ className = '' }
                           return 'bg-yellow-50 border-yellow-200';
                         case 'overdue':
                           return 'bg-red-50 border-red-200';
+                        case 'upcoming':
+                          return 'bg-blue-50 border-blue-200';
                         default:
                           return 'border-border';
                       }
@@ -649,6 +545,13 @@ export const RevenueSection: React.FC<RevenueSectionProps> = ({ className = '' }
                         <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
                           <Clock className="w-4 h-4 inline mr-1" />
                           Payment is due. Send reminder to tenant.
+                        </div>
+                      )}
+
+                      {tenant.paymentStatus === 'upcoming' && (
+                        <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded text-sm text-blue-800">
+                          <Calendar className="w-4 h-4 inline mr-1" />
+                          Payment due on {new Date(tenant.dueDate).toLocaleDateString()}.
                         </div>
                       )}
                     </div>

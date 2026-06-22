@@ -26,6 +26,7 @@ public class PropertyResponse {
     private String rejectionReason;
     private Long ownerId;
     private String ownerName;
+    private String ownerEmail;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     

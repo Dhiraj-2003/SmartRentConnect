@@ -1,11 +1,15 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
+import com.smartrent.connect.smartrentconnect.dto.OwnerDashboardDTO;
 import com.smartrent.connect.smartrentconnect.dto.OwnerProfileResponseDTO;
 import com.smartrent.connect.smartrentconnect.dto.OwnerProfileUpdateDTO;
+import com.smartrent.connect.smartrentconnect.dto.OwnerRevenueDTO;
+import com.smartrent.connect.smartrentconnect.service.OwnerDashboardService;
 import com.smartrent.connect.smartrentconnect.service.OwnerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +23,7 @@ import java.util.Map;
 public class OwnerController {
 
     private final OwnerService ownerService;
+    private final OwnerDashboardService ownerDashboardService;
 
     // =============== PROFILE MANAGEMENT ===============
     
@@ -90,5 +95,38 @@ public class OwnerController {
     public ResponseEntity<String> getDashboard() {
         // This can be expanded to return actual dashboard stats
         return ResponseEntity.ok("Owner Dashboard - Profile management and property operations");
+    }
+
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<OwnerDashboardDTO.DashboardStatsDTO> getDashboardStats(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            OwnerDashboardDTO dashboardData = ownerDashboardService.getDashboardData(username);
+            return ResponseEntity.ok(dashboardData.getStats());
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/dashboard/analytics")
+    public ResponseEntity<OwnerDashboardDTO> getDashboardAnalytics(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            OwnerDashboardDTO dashboardData = ownerDashboardService.getDashboardData(username);
+            return ResponseEntity.ok(dashboardData);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+    @GetMapping("/revenue")
+    public ResponseEntity<OwnerRevenueDTO> getRevenueData(Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            OwnerRevenueDTO revenueData = ownerDashboardService.getRevenueData(username);
+            return ResponseEntity.ok(revenueData);
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }

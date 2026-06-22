@@ -1,17 +1,9 @@
 package com.smartrent.connect.smartrentconnect.service;
 
-import com.smartrent.connect.smartrentconnect.entity.Booking;
-import com.smartrent.connect.smartrentconnect.entity.FlatDetails;
-import com.smartrent.connect.smartrentconnect.entity.PGBed;
-import com.smartrent.connect.smartrentconnect.entity.Payment;
-import com.smartrent.connect.smartrentconnect.entity.TenantPropertyHistory;
+import com.smartrent.connect.smartrentconnect.entity.*;
 import com.smartrent.connect.smartrentconnect.enums.PaymentMethod;
 import com.smartrent.connect.smartrentconnect.enums.PaymentStatus;
-import com.smartrent.connect.smartrentconnect.repository.BookingRepository;
-import com.smartrent.connect.smartrentconnect.repository.FlatDetailsRepository;
-import com.smartrent.connect.smartrentconnect.repository.PGBedRepository;
-import com.smartrent.connect.smartrentconnect.repository.PaymentRepository;
-import com.smartrent.connect.smartrentconnect.repository.TenantPropertyHistoryRepository;
+import com.smartrent.connect.smartrentconnect.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +30,9 @@ public class PaymentService {
     
     @Autowired
     private TenantPropertyHistoryRepository tenantPropertyHistoryRepository;
+
+    @Autowired
+    private PropertyRepository propertyRepository;
     
     public Payment createPayment(Payment payment) {
         return paymentRepository.save(payment);
@@ -164,5 +159,95 @@ public class PaymentService {
     
     public Optional<Payment> findByRazorpayOrderId(String razorpayOrderId) {
         return paymentRepository.findByRazorpayOrderId(razorpayOrderId);
+    }
+    
+    /**
+     * Create online rent payment
+     */
+    public Payment createOnlineRentPayment(Long historyId, Double amount, String razorpayOrderId) {
+        Payment payment = new Payment();
+        
+        // Fetch and set TenantPropertyHistory
+        TenantPropertyHistory history = tenantPropertyHistoryRepository.findById(historyId)
+            .orElseThrow(() -> new RuntimeException("TenantPropertyHistory not found"));
+
+        payment.setTenantPropertyHistory(history);
+        payment.setBooking(history.getBooking()); // Set booking from history
+        payment.setAmount(amount);
+        payment.setPaymentMethod(PaymentMethod.ONLINE);
+        payment.setPaymentStatus(PaymentStatus.PENDING);
+        payment.setRazorpayOrderId(razorpayOrderId);
+        
+        return paymentRepository.save(payment);
+    }
+    
+    /**
+     * Create cash rent payment
+     */
+    public Payment createCashRentPayment(Long historyId, Double amount) {
+        Payment payment = new Payment();
+        
+        // Fetch and set TenantPropertyHistory
+        TenantPropertyHistory history = tenantPropertyHistoryRepository.findById(historyId)
+            .orElseThrow(() -> new RuntimeException("TenantPropertyHistory not found"));
+
+        payment.setTenantPropertyHistory(history);
+        payment.setBooking(history.getBooking()); // Set booking from history
+        payment.setAmount(amount);
+        payment.setPaymentMethod(PaymentMethod.CASH);
+        payment.setPaymentStatus(PaymentStatus.PENDING);
+        
+        return paymentRepository.save(payment);
+    }
+    
+    /**
+     * Confirm rent payment
+     */
+    public void confirmRentPayment(Long paymentId) {
+        Optional<Payment> paymentOpt = paymentRepository.findById(paymentId);
+        if (paymentOpt.isEmpty()) {
+            throw new RuntimeException("Payment not found");
+        }
+        
+        Payment payment = paymentOpt.get();
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        paymentRepository.save(payment);
+        
+        // Update TenantPropertyHistory after successful rent payment
+        updateTenantPropertyHistoryAfterRentPayment(payment);
+    }
+    
+    /**
+     * Update TenantPropertyHistory after successful rent payment
+     */
+    private void updateTenantPropertyHistoryAfterRentPayment(Payment payment) {
+        try {
+            TenantPropertyHistory history = payment.getTenantPropertyHistory();
+            
+            if (history != null) {
+                // Update the history record
+                history.setLastPaidDate(LocalDate.now());
+                history.setNextRentDueDate(history.getNextRentDueDate().plusMonths(1));
+                history.setStatus(com.smartrent.connect.smartrentconnect.enums.OccupancyStatus.ACTIVE);
+                
+                tenantPropertyHistoryRepository.save(history);
+                
+                System.out.println("Updated TenantPropertyHistory after rent payment for tenant: " + 
+                        history.getTenant().getUsername() +
+                        ", Next due date: " + history.getNextRentDueDate());
+            } else {
+                System.err.println("No TenantPropertyHistory found for payment ID: " + payment.getId());
+            }
+        } catch (Exception e) {
+            System.err.println("Error updating TenantPropertyHistory after rent payment: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Get payments by TenantPropertyHistory ID
+     */
+    public List<Payment> getPaymentsByTenantPropertyHistoryId(Long historyId) {
+        return paymentRepository.findByTenantPropertyHistoryId(historyId);
     }
 }

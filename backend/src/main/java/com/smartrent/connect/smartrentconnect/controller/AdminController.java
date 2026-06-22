@@ -1,6 +1,7 @@
 package com.smartrent.connect.smartrentconnect.controller;
 
 import com.smartrent.connect.smartrentconnect.service.AdminService;
+import com.smartrent.connect.smartrentconnect.service.AuthService;
 import com.smartrent.connect.smartrentconnect.dto.*;
 import com.smartrent.connect.smartrentconnect.entity.GuestPass;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -22,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class AdminController {
 
     private final AdminService adminService;
+    private final AuthService authService;
 
     // =============== DASHBOARD STATS ===============
     @GetMapping("/dashboard")
@@ -69,6 +72,18 @@ public class AdminController {
     @GetMapping("/revenue-report")
     public ResponseEntity<RevenueReportResponse> getRevenueReport() {
         return ResponseEntity.ok(adminService.getRevenueReport());
+    }
+
+    // =============== USER ACTIVITY STATS ===============
+    @GetMapping("/user-activity-stats")
+    public ResponseEntity<UserActivityStatsResponse> getUserActivityStats() {
+        return ResponseEntity.ok(adminService.getUserActivityStats());
+    }
+
+    // =============== PROPERTY STATS ===============
+    @GetMapping("/property-stats")
+    public ResponseEntity<PropertyStatsResponse> getPropertyStats() {
+        return ResponseEntity.ok(adminService.getPropertyStats());
     }
 
     // =============== GUEST PASS MANAGEMENT ===============
@@ -127,6 +142,12 @@ public class AdminController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rejection reason is required");
         }
         return ResponseEntity.ok(adminService.rejectOwnerVerification(ownerId, reason.trim()));
+    }
+
+    // =============== ADMIN MANAGEMENT ===============
+    @PostMapping("/register-admin")
+    public ResponseEntity<String> registerAdmin(@Validated @RequestBody AdminRegisterRequest request) {
+        return ResponseEntity.ok(authService.registerAdmin(request));
     }
 }
 

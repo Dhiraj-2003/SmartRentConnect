@@ -330,6 +330,7 @@ public class OwnerPropertyService {
                 .rejectionReason(property.getRejectionReason())
                 .ownerId(property.getOwner().getId())
                 .ownerName(property.getOwner().getFullName())
+                .ownerEmail(property.getOwner().getEmail())
                 .createdAt(property.getCreatedAt())
                 .updatedAt(property.getUpdatedAt());
 

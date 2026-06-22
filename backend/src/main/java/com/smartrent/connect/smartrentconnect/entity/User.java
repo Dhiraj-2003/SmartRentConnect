@@ -7,6 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 import com.smartrent.connect.smartrentconnect.enums.Role;
 import lombok.Data;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "users")
 @Inheritance(strategy = InheritanceType.JOINED)
@@ -36,5 +38,13 @@ public class User {
 
     @Column(name = "profile_image", length = 500)
     private String profileImage; // Cloudinary URL for profile image
+
+    @Column(name = "created_at")
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+    @PrePersist
+    public void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 
 }

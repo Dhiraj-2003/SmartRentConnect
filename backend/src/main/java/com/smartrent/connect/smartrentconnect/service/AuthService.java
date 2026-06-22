@@ -22,11 +22,12 @@ public class AuthService {
     private final WatchmanRepository watchmanRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final EmailService emailService;
 
-    public AuthService(UserRepository userRepository, TenantRepository tenantRepository, 
+    public AuthService(UserRepository userRepository, TenantRepository tenantRepository,
                       OwnerRepository ownerRepository, AdminRepository adminRepository,
-                      WatchmanRepository watchmanRepository, PasswordEncoder passwordEncoder, 
-                      JwtUtils jwtUtils) {
+                      WatchmanRepository watchmanRepository, PasswordEncoder passwordEncoder,
+                      JwtUtils jwtUtils, EmailService emailService) {
         this.userRepository = userRepository;
         this.tenantRepository = tenantRepository;
         this.ownerRepository = ownerRepository;
@@ -34,6 +35,7 @@ public class AuthService {
         this.watchmanRepository = watchmanRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtils = jwtUtils;
+        this.emailService = emailService;
     }
 
     // ================= REGISTER TENANT =================
@@ -56,6 +58,9 @@ public class AuthService {
         tenant.setRole(Role.TENANT);
 
         tenantRepository.save(tenant);
+
+        // Send welcome email
+        emailService.sendWelcomeEmail(tenant.getEmail(), tenant.getFullName(), "Tenant", tenant.getUsername());
 
         return "Tenant registered successfully!";
     }
@@ -82,6 +87,9 @@ public class AuthService {
 
         ownerRepository.save(owner);
 
+        // Send welcome email
+        emailService.sendWelcomeEmail(owner.getEmail(), owner.getFullName(), "Owner", owner.getUsername());
+
         return "Owner registered successfully!";
     }
 
@@ -102,6 +110,9 @@ public class AuthService {
         admin.setRole(Role.ADMIN);
 
         adminRepository.save(admin);
+
+        // Send welcome email
+        //emailService.sendWelcomeEmail(admin.getEmail(), admin.getFullName(), "Admin", admin.getUsername());
 
         return "Admin registered successfully!";
     }
@@ -126,6 +137,9 @@ public class AuthService {
         watchman.setRole(Role.WATCHMAN);
 
         watchmanRepository.save(watchman);
+
+        // Send welcome email
+        emailService.sendWelcomeEmail(watchman.getEmail(), watchman.getFullName(), "Watchman", watchman.getUsername());
 
         return "Watchman registered successfully!";
     }

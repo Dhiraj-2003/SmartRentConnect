@@ -21,4 +21,10 @@ public interface EmailService {
     
     // Email with attachment
     void sendEmailWithAttachment(String to, String subject, String message, String attachmentPath);
+
+    // Welcome email for new users
+    void sendWelcomeEmail(String to, String fullName, String role, String username);
+
+    // OTP email for property verification
+    void sendPropertyVerificationOtp(String to, String ownerName, String propertyTitle, String otp);
 }

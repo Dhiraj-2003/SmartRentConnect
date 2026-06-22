@@ -52,8 +52,14 @@ public interface PropertyRepository extends JpaRepository<Property, Long> {
     @Query("SELECT COUNT(p) FROM Property p WHERE p.owner.id = :ownerId")
     Long countByOwnerId(@Param("ownerId") Long ownerId);
 
+    @Query("SELECT COUNT(p) FROM Property p WHERE p.owner = :owner")
+    Long countByOwner(@Param("owner") Owner owner);
+
     @Query("SELECT COUNT(p) FROM Property p WHERE p.status = :status")
     Long countByStatus(@Param("status") PropertyStatus status);
+
+    @Query("SELECT COUNT(p) FROM Property p WHERE p.propertyType = :propertyType")
+    Long countByPropertyType(@Param("propertyType") PropertyType propertyType);
 
     @Query("SELECT p FROM Property p WHERE p.status = 'PENDING' ORDER BY p.createdAt DESC")
     List<Property> findPendingProperties();

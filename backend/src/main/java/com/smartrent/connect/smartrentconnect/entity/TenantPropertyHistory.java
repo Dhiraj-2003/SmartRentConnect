@@ -37,6 +37,11 @@ public class TenantPropertyHistory {
     @JoinColumn(name = "property_id", nullable = false)
     private Property property;
 
+    // Reference to the original booking
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id")
+    private Booking booking;
+
     // For FLAT booking only
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "flat_details_id")

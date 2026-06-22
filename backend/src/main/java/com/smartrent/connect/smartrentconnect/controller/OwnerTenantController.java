@@ -81,7 +81,7 @@ public class OwnerTenantController {
             // Get all pending cash payments for this owner's properties
             List<TenantDTO> pendingCashTenants = new ArrayList<>();
             
-            // Find all bookings for this owner's properties
+            // 1. Find pending cash payments from bookings (deposit payments)
             List<Booking> ownerBookings = bookingRepository.findPendingBookingsByOwner(owner.getId());
             
             for (Booking booking : ownerBookings) {
@@ -100,7 +100,29 @@ public class OwnerTenantController {
                 }
             }
             
-            log.info("Found {} pending cash payments for owner", pendingCashTenants.size());
+            // 2. Find pending cash payments from TenantPropertyHistory (rent payments)
+            List<TenantPropertyHistory> ownerHistories = tenantPropertyHistoryService.getTenantHistoriesByOwnerId(owner.getId());
+            
+            for (TenantPropertyHistory history : ownerHistories) {
+                // Check if there's a pending cash payment for this history
+                Optional<Payment> pendingPayment = paymentRepository.findByTenantPropertyHistoryId(history.getId())
+                    .stream()
+                    .filter(p -> p.getPaymentMethod().name().equals("CASH") && 
+                                 p.getPaymentStatus().name().equals("PENDING"))
+                    .findFirst();
+                
+                if (pendingPayment.isPresent()) {
+                    Payment payment = pendingPayment.get();
+                    // Convert history + payment to TenantDTO
+                    TenantDTO tenantDTO = convertHistoryAndPaymentToDTO(history, payment);
+                    pendingCashTenants.add(tenantDTO);
+                }
+            }
+            
+            log.info("Found {} pending cash payments for owner ({} from bookings, {} from rent payments)", 
+                pendingCashTenants.size(), 
+                ownerBookings.size(),
+                ownerHistories.size());
             return ResponseEntity.ok(pendingCashTenants);
             
         } catch (Exception e) {
@@ -159,8 +181,44 @@ public class OwnerTenantController {
     @PostMapping("/{tenantId}/confirm-cash-payment")
     public ResponseEntity<?> confirmCashPayment(@PathVariable String tenantId) {
         try {
+            // Check if this is a pending rent cash payment (ID starts with "rent-pending-")
+            if (tenantId.startsWith("rent-pending-")) {
+                // Extract history ID from rent-pending-{historyId}
+                Long historyId = Long.parseLong(tenantId.substring(13));
+                
+                // Get the TenantPropertyHistory
+                TenantPropertyHistory history = tenantPropertyHistoryService.getTenantHistoryById(historyId);
+                if (history == null) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "TenantPropertyHistory not found"));
+                }
+                
+                // Get the pending payment
+                Optional<Payment> pendingPayment = paymentRepository.findByTenantPropertyHistoryId(historyId)
+                    .stream()
+                    .filter(p -> p.getPaymentMethod().name().equals("CASH") && 
+                                 p.getPaymentStatus().name().equals("PENDING"))
+                    .findFirst();
+                
+                if (pendingPayment.isEmpty()) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "No pending cash payment found"));
+                }
+                
+                Payment payment = pendingPayment.get();
+                
+                // Update payment status to SUCCESS
+                payment.setPaymentStatus(PaymentStatus.SUCCESS);
+                payment.setTransactionDate(java.time.LocalDateTime.now());
+                paymentRepository.save(payment);
+                
+                // Update TenantPropertyHistory after successful rent payment
+                paymentService.confirmRentPayment(payment.getId());
+                
+                log.info("Rent cash payment confirmed for history ID: {}", historyId);
+                return ResponseEntity.ok().body(Map.of("message", "Rent cash payment confirmed successfully"));
+                
+            }
             // Check if this is a pending cash payment (ID starts with "pending-")
-            if (tenantId.startsWith("pending-")) {
+            else if (tenantId.startsWith("pending-")) {
                 // Extract booking ID from pending-{bookingId}
                 Long bookingId = Long.parseLong(tenantId.substring(8));
                 
@@ -237,8 +295,41 @@ public class OwnerTenantController {
     @PostMapping("/{tenantId}/reject-cash-payment")
     public ResponseEntity<?> rejectCashPayment(@PathVariable String tenantId) {
         try {
+            // Check if this is a pending rent cash payment (ID starts with "rent-pending-")
+            if (tenantId.startsWith("rent-pending-")) {
+                // Extract history ID from rent-pending-{historyId}
+                Long historyId = Long.parseLong(tenantId.substring(13));
+                
+                // Get the TenantPropertyHistory
+                TenantPropertyHistory history = tenantPropertyHistoryService.getTenantHistoryById(historyId);
+                if (history == null) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "TenantPropertyHistory not found"));
+                }
+                
+                // Get the pending payment
+                Optional<Payment> pendingPayment = paymentRepository.findByTenantPropertyHistoryId(historyId)
+                    .stream()
+                    .filter(p -> p.getPaymentMethod().name().equals("CASH") && 
+                                 p.getPaymentStatus().name().equals("PENDING"))
+                    .findFirst();
+                
+                if (pendingPayment.isEmpty()) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "No pending cash payment found"));
+                }
+                
+                Payment payment = pendingPayment.get();
+                
+                // Update payment status to CANCELLED
+                payment.setPaymentStatus(PaymentStatus.CANCELLED);
+                payment.setFailureReason("Rent cash payment rejected by owner");
+                paymentRepository.save(payment);
+                
+                log.info("Rent cash payment rejected for history ID: {}", historyId);
+                return ResponseEntity.ok().body(Map.of("message", "Rent cash payment rejected successfully"));
+                
+            }
             // Check if this is a pending cash payment (ID starts with "pending-")
-            if (tenantId.startsWith("pending-")) {
+            else if (tenantId.startsWith("pending-")) {
                 // Extract booking ID from pending-{bookingId}
                 Long bookingId = Long.parseLong(tenantId.substring(8));
                 
@@ -400,6 +491,42 @@ public class OwnerTenantController {
                 .bookingMoveInDate(booking.getMoveInDate().toString())
                 .build();
     }
+    
+    // Helper method to convert TenantPropertyHistory + Payment to TenantDTO for rent cash payments
+    private TenantDTO convertHistoryAndPaymentToDTO(TenantPropertyHistory history, Payment payment) {
+        String roomNumber = null;
+        // Get room number for PG bookings
+        if (history.getPgBed() != null && history.getPgBed().getPgRoom() != null) {
+            roomNumber = history.getPgBed().getPgRoom().getRoomNumber();
+        }
+        
+        return TenantDTO.builder()
+                .id("rent-pending-" + history.getId().toString()) // Special ID for rent pending payments
+                .tenantId(history.getTenant().getId().toString())
+                .fullName(history.getTenant().getFullName())
+                .email(history.getTenant().getEmail())
+                .phoneNumber(history.getTenant().getPhoneNumber())
+                .profileImage(history.getTenant().getProfileImage())
+                .propertyName(history.getProperty().getTitle())
+                .propertyType(history.getBookingType().name())
+                .flatNumber(history.getFlatDetails() != null ? history.getFlatDetails().getFlatNumber() : null)
+                .bedNumber(history.getPgBed() != null ? history.getPgBed().getBedNumber() : null)
+                .roomNumber(roomNumber)
+                .bookingDate(history.getBookingDate().toString())
+                .occupancyStartDate(history.getOccupancyStartDate() != null ? history.getOccupancyStartDate().toString() : null)
+                .depositAmount(history.getDepositAmount())
+                .monthlyRent(history.getMonthlyRent())
+                .lastPaidDate(history.getLastPaidDate() != null ? history.getLastPaidDate().toString() : null)
+                .nextRentDueDate(history.getNextRentDueDate() != null ? history.getNextRentDueDate().toString() : null)
+                .paymentMode("CASH")
+                .status("PENDING_CASH_RENT")
+                .releaseDate(history.getReleaseDate() != null ? history.getReleaseDate().toString() : null)
+                .releaseReason(history.getReleaseReason())
+                .paymentMethod(payment.getPaymentMethod().name())
+                .paymentStatus(payment.getPaymentStatus().name())
+                .historyId(history.getId()) // Add history ID for rent payments
+                .build();
+    }
     private TenantDTO convertToTenantDTO(TenantPropertyHistory history) {
         String roomNumber = null;
         // Get room number for PG bookings
@@ -510,5 +637,8 @@ public class OwnerTenantController {
         private String bookingStatus;
         private String bookingBookingDate;
         private String bookingMoveInDate;
+        
+        // TenantPropertyHistory information for rent cash payments
+        private Long historyId;
     }
 }

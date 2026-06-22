@@ -64,4 +64,7 @@ public interface TenantPropertyHistoryRepository extends JpaRepository<TenantPro
     
     @Query("SELECT tph FROM TenantPropertyHistory tph WHERE tph.status = :status AND tph.isActive = true")
     List<TenantPropertyHistory> findByStatus(@Param("status") OccupancyStatus status);
+    
+    @Query("SELECT tph FROM TenantPropertyHistory tph WHERE tph.tenant.id = :tenantId AND tph.isActive = :isActive")
+    List<TenantPropertyHistory> findByTenantIdAndIsActive(@Param("tenantId") Long tenantId, @Param("isActive") Boolean isActive);
 }

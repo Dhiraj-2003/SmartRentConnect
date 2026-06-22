@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -148,6 +150,41 @@ public class TenantPropertyService {
                 .filter(payment -> payment.getPaymentStatus() == PaymentStatus.PENDING)
                 .mapToDouble(Payment::getAmount)
                 .sum();
+
+        // Add pending rent amounts from TenantPropertyHistory with proper handling of all conditions
+        LocalDate today = LocalDate.now();
+        double pendingRentFromHistory = activeHistories.stream()
+                .filter(history -> {
+                    // Check if rent is not yet paid for this due date
+                    LocalDate lastPaid = history.getLastPaidDate();
+                    LocalDate dueDate = history.getNextRentDueDate();
+                    // Rent is considered unpaid if lastPaidDate is null or before the due date
+                    return lastPaid == null || lastPaid.isBefore(dueDate);
+                })
+                .mapToDouble(history -> {
+                    LocalDate dueDate = history.getNextRentDueDate();
+                    long daysUntilDue = ChronoUnit.DAYS.between(dueDate,today);
+                    
+                    // Handle different conditions
+                    if (daysUntilDue > 0) {
+                        // OVERDUE: rent past due date (positive days means overdue)
+                        double lateFee = Math.min(daysUntilDue * 0.10 * history.getMonthlyRent(), 
+                                                0.30 * history.getMonthlyRent());
+                        return history.getMonthlyRent() + lateFee;
+                    } else if (daysUntilDue == 0) {
+                        // DUE TODAY: add monthly rent
+                        return history.getMonthlyRent();
+                    } else if (daysUntilDue >= -7) {
+                        // UPCOMING: due within next 7 days (negative days means future)
+                        return history.getMonthlyRent();
+                    } else {
+                        // Not due yet - don't add to pending
+                        return 0.0;
+                    }
+                })
+                .sum();
+
+        pendingPayments += pendingRentFromHistory;
 
         int openComplaints = (int) complaintRepository.findAll().stream()
                 .filter(complaint -> complaint.getTenant().getId().equals(tenant.getId()))

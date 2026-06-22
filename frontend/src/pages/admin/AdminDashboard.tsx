@@ -17,7 +17,8 @@ import {
   Settings,
   FileText,
   Shield,
-  RefreshCw
+  RefreshCw,
+  UserCog
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -100,12 +101,15 @@ export const AdminDashboard: React.FC = () => {
               <span className="text-sm">Generate Reports</span>
             </Button>
           </Link>
-          <Button variant="outline" className="w-full flex flex-col h-20 space-y-2">
-            <Shield className="w-5 h-5" />
-            <span className="text-sm">Security Logs</span>
-          </Button>
+          <Link to="/admin/admin-management">
+            <Button variant="outline" className="w-full flex flex-col h-20 space-y-2">
+              <UserCog className="w-5 h-5" />
+              <span className="text-sm">Manage Admins</span>
+            </Button>
+          </Link>
         </div>
       </div>
     </div>
   );
 };
+

@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -46,6 +48,7 @@ public class TenantPropertyHistoryService {
                 .property(booking.getFlatDetails() != null ? 
                         booking.getFlatDetails().getProperty() : 
                         (pgBed != null ? pgBed.getPgRoom().getPgDetails().getProperty() : null))
+                .booking(booking) // Set the booking reference
                 .flatDetails(booking.getFlatDetails())
                 .pgBed(pgBed)
                 .bookingType(booking.getFlatDetails() != null ? BookingType.FLAT : BookingType.PG)
@@ -217,5 +220,88 @@ public class TenantPropertyHistoryService {
      */
     public TenantPropertyHistory saveTenantHistory(TenantPropertyHistory history) {
         return tenantPropertyHistoryRepository.save(history);
+    }
+
+    /**
+     * Get pending rent payments for a tenant
+     * Returns active tenancies with rent due within 30 days
+     */
+    public List<PendingRentPaymentDTO> getPendingRentPaymentsForTenant(Long tenantId) {
+        List<TenantPropertyHistory> activeHistories = tenantPropertyHistoryRepository
+                .findByTenantIdAndIsActive(tenantId, true);
+        
+        List<PendingRentPaymentDTO> pendingPayments = new ArrayList<>();
+        
+        for (TenantPropertyHistory history : activeHistories) {
+            LocalDate today = LocalDate.now();
+            LocalDate nextDueDate = history.getNextRentDueDate();
+            
+            // Include if due date is today or in the past (overdue)
+            // Or if it's within the next 30 days (upcoming)
+            long daysUntilDue = ChronoUnit.DAYS.between(today, nextDueDate);
+            
+            if (daysUntilDue <= 30) {
+                PendingRentPaymentDTO dto = PendingRentPaymentDTO.builder()
+                        .historyId(history.getId())
+                        .propertyId(history.getProperty().getId())
+                        .propertyName(history.getProperty().getTitle())
+                        .propertyType(history.getBookingType().toString())
+                        .flatNumber(history.getFlatDetails() != null ? history.getFlatDetails().getFlatNumber() : null)
+                        .roomNumber(history.getPgBed() != null && history.getPgBed().getPgRoom() != null 
+                                ? history.getPgBed().getPgRoom().getRoomNumber() : null)
+                        .bedNumber(history.getPgBed() != null ? history.getPgBed().getBedNumber() : null)
+                        .ownerName(history.getOwner().getFullName())
+                        .ownerEmail(history.getOwner().getEmail())
+                        .ownerPhone(history.getOwner().getPhoneNumber())
+                        .amount(history.getMonthlyRent())
+                        .dueDate(nextDueDate)
+                        .lastPaidDate(history.getLastPaidDate())
+                        .build();
+                
+                // Calculate payment status and late fee
+                if (daysUntilDue < 0) {
+                    dto.setStatus("OVERDUE");
+                    // Late fee: 10% of monthly rent for each overdue day (max 30%)
+                    double lateFee = Math.min(Math.abs(daysUntilDue) * 0.10 * history.getMonthlyRent(), 
+                                            0.30 * history.getMonthlyRent());
+                    dto.setLateFee(lateFee);
+                } else if (daysUntilDue == 0) {
+                    dto.setStatus("DUE_TODAY");
+                    dto.setLateFee(null);
+                } else {
+                    dto.setStatus("UPCOMING");
+                    dto.setLateFee(null);
+                }
+                
+                pendingPayments.add(dto);
+            }
+        }
+        
+        return pendingPayments;
+    }
+
+    /**
+     * DTO for pending rent payments
+     */
+    @lombok.Data
+    @lombok.Builder
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class PendingRentPaymentDTO {
+        private Long historyId;
+        private Long propertyId;
+        private String propertyName;
+        private String propertyType;
+        private String flatNumber;
+        private String roomNumber;
+        private String bedNumber;
+        private String ownerName;
+        private String ownerEmail;
+        private String ownerPhone;
+        private Double amount;
+        private LocalDate dueDate;
+        private LocalDate lastPaidDate;
+        private String status;
+        private Double lateFee;
     }
 }

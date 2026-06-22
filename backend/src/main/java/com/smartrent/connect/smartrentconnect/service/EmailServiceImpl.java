@@ -304,4 +304,66 @@ public class EmailServiceImpl implements EmailService {
                   .replace("\"", "&quot;")
                   .replace("'", "&#x27;");
     }
+
+    @Override
+    public void sendWelcomeEmail(String to, String fullName, String role, String username) {
+        try {
+            String subject = "Welcome to SmartRentConnect - Your Account is Ready!";
+            String message = buildWelcomeMessage(fullName, role, username);
+            sendEmail(to, subject, message);
+            log.info("Welcome email sent successfully to: {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send welcome email to: {}. Error: {}", to, e.getMessage(), e);
+            // Don't throw exception - registration should succeed even if email fails
+        }
+    }
+
+    private String buildWelcomeMessage(String fullName, String role, String username) {
+        StringBuilder message = new StringBuilder();
+        message.append("🎉 Welcome to SmartRentConnect, ").append(fullName).append("!\n\n");
+        message.append("Your account has been successfully created and you are now ready to use our platform.\n\n");
+        message.append("**Account Details:**\n");
+        message.append("- 👤 Name: ").append(fullName).append("\n");
+        message.append("- 🔑 Username: ").append(username).append("\n");
+        message.append("- 🏷️  Role: ").append(role).append("\n\n");
+        message.append("**What's Next?**\n");
+        message.append("You can now log in to your account using your username and password.\n");
+        message.append("Explore our features and start managing your rental properties with ease.\n\n");
+        message.append("**Need Help?**\n");
+        message.append("If you have any questions or need assistance, feel free to reach out to our support team.\n\n");
+        message.append("Thank you for choosing SmartRentConnect!\n\n");
+        message.append("Best regards,\n");
+        message.append("The SmartRentConnect Team");
+        return message.toString();
+    }
+
+    @Override
+    public void sendPropertyVerificationOtp(String to, String ownerName, String propertyTitle, String otp) {
+        try {
+            String subject = "Property Verification OTP - SmartRentConnect";
+            String message = buildPropertyVerificationOtpMessage(ownerName, propertyTitle, otp);
+            sendEmail(to, subject, message);
+            log.info("Property verification OTP sent successfully to: {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send property verification OTP to: {}. Error: {}", to, e.getMessage(), e);
+            throw new RuntimeException("Failed to send OTP: " + e.getMessage(), e);
+        }
+    }
+
+    private String buildPropertyVerificationOtpMessage(String ownerName, String propertyTitle, String otp) {
+        StringBuilder message = new StringBuilder();
+        message.append("🔐 Property Verification OTP\n\n");
+        message.append("Dear ").append(ownerName).append(",\n\n");
+        message.append("An admin is verifying your property: ").append(propertyTitle).append("\n\n");
+        message.append("**Your Verification OTP:**\n");
+        message.append("🔢 ").append(otp).append("\n\n");
+        message.append("**Important:**\n");
+        message.append("- This OTP is valid for 10 minutes only\n");
+        message.append("- Do not share this OTP with anyone\n");
+        message.append("- The admin will ask you to provide this OTP for verification\n\n");
+        message.append("If you did not request this verification, please contact our support team immediately.\n\n");
+        message.append("Best regards,\n");
+        message.append("The SmartRentConnect Team");
+        return message.toString();
+    }
 }

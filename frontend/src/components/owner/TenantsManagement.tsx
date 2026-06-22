@@ -57,7 +57,7 @@ interface Tenant {
   roomNumber?: string;
   bookingDate: string;
   occupancyStartDate: string;
-  status: 'ACTIVE' | 'RENT_DUE' | 'OVERDUE' | 'PENDING_CASH' | 'UPCOMING' | 'RELEASED';
+  status: 'ACTIVE' | 'RENT_DUE' | 'OVERDUE' | 'PENDING_CASH' | 'PENDING_CASH_RENT' | 'UPCOMING' | 'RELEASED';
   depositAmount: number;
   monthlyRent: number;
   lastPaidDate?: string;
@@ -76,6 +76,9 @@ interface Tenant {
   bookingStatus?: string;
   bookingBookingDate?: string;
   bookingMoveInDate?: string;
+  
+  // TenantPropertyHistory information for rent cash payments
+  historyId?: number;
 }
 
 interface SummaryStats {
@@ -127,7 +130,7 @@ export const TenantsManagement: React.FC = () => {
       // Calculate summary stats
       const stats = allTenants.reduce((acc: SummaryStats, tenant: Tenant) => {
         if (tenant.status === 'ACTIVE') acc.activeTenants++;
-        else if (tenant.status === 'PENDING_CASH') acc.pendingCashConfirmations++;
+        else if (tenant.status === 'PENDING_CASH' || tenant.status === 'PENDING_CASH_RENT') acc.pendingCashConfirmations++;
         else if (tenant.status === 'UPCOMING') acc.upcomingMoveIns++;
         else if (tenant.status === 'RELEASED') acc.releasedTenants++;
         return acc;
@@ -191,7 +194,7 @@ export const TenantsManagement: React.FC = () => {
       case 'active':
         return filteredTenants.filter(t => t.status === 'ACTIVE' || t.status === 'RENT_DUE' || t.status === 'OVERDUE');
       case 'pending':
-        return filteredTenants.filter(t => t.status === 'PENDING_CASH');
+        return filteredTenants.filter(t => t.status === 'PENDING_CASH' || t.status === 'PENDING_CASH_RENT');
       case 'upcoming':
         return filteredTenants.filter(t => t.status === 'UPCOMING');
       case 'released':
@@ -207,6 +210,7 @@ export const TenantsManagement: React.FC = () => {
       'RENT_DUE': { variant: 'secondary', text: 'RENT_DUE' },
       'OVERDUE': { variant: 'destructive', text: 'OVERDUE' },
       'PENDING_CASH': { variant: 'secondary', text: 'PENDING CASH' },
+      'PENDING_CASH_RENT': { variant: 'secondary', text: 'PENDING RENT' },
       'UPCOMING': { variant: 'outline', text: 'UPCOMING' },
       'RELEASED': { variant: 'outline', text: 'RELEASED' }
     };
@@ -323,7 +327,7 @@ export const TenantsManagement: React.FC = () => {
                     <UserX className="h-3 w-3" />
                   </Button>
                 )}
-                {tenant.status === 'PENDING_CASH' && (
+                {(tenant.status === 'PENDING_CASH' || tenant.status === 'PENDING_CASH_RENT') && (
                   <>
                     <Button variant="default" size="sm" onClick={() => handleConfirmPayment(tenant.id)}>
                       <CheckCircle className="h-3 w-3" />
@@ -424,32 +428,55 @@ export const TenantsManagement: React.FC = () => {
           </div>
           
           {/* Payment and Booking Information for Pending Cash Confirmations */}
-          {tenant.status === 'PENDING_CASH' && (
+          {(tenant.status === 'PENDING_CASH' || tenant.status === 'PENDING_CASH_RENT') && (
             <div className="space-y-3 mb-4">
               
               {/* Booking Information */}
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 border border-blue-200">
                 <div className="text-xs font-semibold text-blue-700 mb-2 flex items-center">
                   <Calendar className="h-3 w-3 mr-1" />
-                  Booking Details
+                  {tenant.status === 'PENDING_CASH_RENT' ? 'Rent Payment Details' : 'Booking Details'}
                 </div>
                 <div className="space-y-1">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Booking:</span>
-                    <span className="font-medium text-blue-600">
-                      {new Date(tenant.bookingBookingDate || tenant.bookingDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Move-in:</span>
-                    <span className="font-medium text-blue-600">
-                      {new Date(tenant.bookingMoveInDate || tenant.occupancyStartDate).toLocaleDateString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-600">Status:</span>
-                    <span className="font-medium text-blue-600">{tenant.bookingStatus || 'CONFIRMED'}</span>
-                  </div>
+                  {tenant.status === 'PENDING_CASH' ? (
+                    <>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Booking:</span>
+                        <span className="font-medium text-blue-600">
+                          {new Date(tenant.bookingBookingDate || tenant.bookingDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Move-in:</span>
+                        <span className="font-medium text-blue-600">
+                          {new Date(tenant.bookingMoveInDate || tenant.occupancyStartDate).toLocaleDateString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Status:</span>
+                        <span className="font-medium text-blue-600">{tenant.bookingStatus || 'CONFIRMED'}</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Last Paid:</span>
+                        <span className="font-medium text-blue-600">
+                          {tenant.lastPaidDate ? new Date(tenant.lastPaidDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Next Due:</span>
+                        <span className="font-medium text-blue-600">
+                          {tenant.nextRentDueDate ? new Date(tenant.nextRentDueDate).toLocaleDateString() : 'N/A'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-xs">
+                        <span className="text-gray-600">Amount:</span>
+                        <span className="font-medium text-blue-600">₹{tenant.monthlyRent}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

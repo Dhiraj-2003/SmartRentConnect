@@ -364,113 +364,137 @@ export const PaymentPage: React.FC = () => {
         key: key,
         amount: amount,
         currency: currency,
+        name: 'Property Rental Platform',
+        description: `Payment for ${state.propertyType} Booking`,
         order_id: razorpayOrderId,
+        image: '/logo.png', // Optional: Add your logo URL
+
+        // Updated UPI Configuration - Removed 'collect' flow as it's deprecated
         method: {
           upi: true,
-          card: false,
-          netbanking: false,
-          wallet: false
+          card: true,
+          netbanking: true,
+          wallet: true
         },
+
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: 'Pay with UPI',
+                instruments: [
+                  {
+                    method: 'upi',
+                    flows: ['intent'] // Using only 'intent' flow (UPI Auto-call/QR)
+                  }
+                ]
+              },
+              cards: {
+                name: 'Credit/Debit Cards',
+                instruments: [
+                  {
+                    method: 'card'
+                  }
+                ]
+              },
+              netbanking: {
+                name: 'Net Banking',
+                instruments: [
+                  {
+                    method: 'netbanking'
+                  }
+                ]
+              }
+            },
+            sequence: ['block.upi', 'block.cards', 'block.netbanking'],
+            preferences: {
+              show_default_blocks: true
+            }
+          }
+        },
+
+        // Prefill user details
+        prefill: {
+          name: state.bookingData?.userName || state.property?.ownerName || 'Guest User',
+          email: state.bookingData?.email || 'guest@example.com',
+          contact: state.bookingData?.phone || '9999999999'
+        },
+
+        // Notes for reference
+        notes: {
+          bookingId: state.bookingId,
+          propertyType: state.propertyType,
+          propertyId: state.property?.id
+        },
+
+        theme: {
+          color: '#3399cc'
+        },
+
+        modal: {
+          ondismiss: async () => {
+            console.log('=== PAYMENT MODAL DISMISSED DEBUG ===');
+            try {
+              const paymentStatusResponse = await tenantAPI.getPaymentStatus(state.bookingId!);
+              if (!paymentStatusResponse.data.success || paymentStatusResponse.data.status !== 'SUCCESS') {
+                await handlePaymentFailure(razorpayOrderId, 'Payment cancelled by user');
+              }
+            } catch (error) {
+              await handlePaymentFailure(razorpayOrderId, 'Payment cancelled by user');
+            }
+          },
+          escape: true,
+          backdropclose: true,
+          animation: 'fade'
+        },
+
+        // Payment success handler
         handler: async (response: any) => {
           try {
             console.log('=== PAYMENT SUCCESS DEBUG ===');
             console.log('Razorpay Response:', response);
             console.log('Booking ID:', state.bookingId);
-            
-            // On successful payment, call verification endpoint
+
             const verifyResponse = await tenantAPI.verifyPayment(
               response.razorpay_order_id,
               response.razorpay_payment_id,
               response.razorpay_signature,
               state.bookingId
             );
-            
+
             console.log('Verification Response:', verifyResponse);
 
             if (verifyResponse.data.success) {
               toast.success('Payment successful! Booking confirmed.');
-              navigate('/tenant/bookings', { 
-                state: { 
-                  success: true, 
+              navigate('/tenant/bookings', {
+                state: {
+                  success: true,
                   bookingId: state.bookingId,
                   paymentMethod: 'online',
-                  message: 'Your booking has been confirmed and payment processed successfully.' 
-                } 
+                  message: 'Your booking has been confirmed and payment processed successfully.'
+                }
               });
             } else {
-              console.log('Verification failed:', verifyResponse.data);
               throw new Error(verifyResponse.data.message || 'Payment verification failed');
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            console.error('Error response:', error.response);
             toast.error('Payment verification failed. Please contact support.');
             setState(prev => ({ ...prev, paymentProcessing: false }));
           }
-        },
-        error: async (response: any) => {
-          console.log('=== PAYMENT ERROR DEBUG ===');
-          console.log('Razorpay Error Response:', response);
-          console.log('Order ID:', razorpayOrderId);
-          console.log('Booking ID:', state.bookingId);
-          
-          let failureReason = 'Payment failed';
-          if (response.error && response.error.description) {
-            failureReason = response.error.description;
-          } else if (response.error && response.error.reason) {
-            failureReason = response.error.reason;
-          } else if (response.error && response.error.code) {
-            failureReason = `Payment failed (Code: ${response.error.code})`;
-          }
-          
-          console.log('Extracted failure reason:', failureReason);
-          
-          try {
-            await handlePaymentFailure(razorpayOrderId, failureReason);
-            console.log('Payment failure handled successfully');
-          } catch (error) {
-            console.error('Failed to handle payment failure:', error);
-          }
-        },
-        prefill: {
-          name: state.property?.ownerName || 'User',
-          email: 'user@example.com',
-          contact: '+919999999999'
-        },
-        theme: {
-          color: '#3399cc'
-        },
-        modal: {
-          ondismiss: async () => {
-            console.log('=== PAYMENT MODAL DISMISSED DEBUG ===');
-            console.log('Payment modal dismissed by user or due to error');
-            console.log('Order ID:', razorpayOrderId);
-            console.log('Booking ID:', state.bookingId);
-            
-            // Check if payment was actually successful by calling backend
-            try {
-              const paymentStatusResponse = await tenantAPI.getPaymentStatus(state.bookingId!);
-              console.log('Payment status check:', paymentStatusResponse.data);
-              
-              // If payment is not successful, treat as failure
-              if (!paymentStatusResponse.data.success || 
-                  paymentStatusResponse.data.status !== 'SUCCESS') {
-                await handlePaymentFailure(razorpayOrderId, 'Payment cancelled or failed');
-              }
-            } catch (error) {
-              console.log('Could not check payment status, assuming failure:', error);
-              await handlePaymentFailure(razorpayOrderId, 'Payment cancelled or failed');
-            }
-          },
-          escape: true,
-          backdropclose: true,
-          animation: 'fade'
         }
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.open();
+      
+      // Add event listeners for debugging
+      rzp.on('payment.failed', async (response: any) => {
+        console.log('=== PAYMENT FAILED EVENT ===', response);
+        const failureReason = response.error?.description || response.error?.reason || 'Payment failed';
+        await handlePaymentFailure(razorpayOrderId, failureReason);
+      });
 
+      rzp.open();
     } catch (error: any) {
       console.error('Payment initiation error:', error);
       setState(prev => ({ 
@@ -732,7 +756,7 @@ export const PaymentPage: React.FC = () => {
 
   const renderPaymentSummary = () => {
     return (
-      <Card className="border-primary/20">
+      <Card className="border-primary/20 sticky top-6">
         <CardHeader className="bg-gradient-to-r from-primary/10 to-transparent">
           <CardTitle className="flex items-center gap-2">
             <IndianRupee className="w-5 h-5 text-primary" />
@@ -813,7 +837,7 @@ export const PaymentPage: React.FC = () => {
                 <CreditCard className="w-5 h-5 text-primary" />
                 <div className="flex-1">
                   <p className="font-medium">Online Payment</p>
-                  <p className="text-sm text-gray-600">Credit/Debit Card, UPI, Net Banking</p>
+                  <p className="text-sm text-gray-600">UPI, Credit/Debit Card, Net Banking</p>
                 </div>
                 {state.selectedPaymentMethod === 'online' && (
                   <CheckCircle className="w-5 h-5 text-primary" />
@@ -838,6 +862,30 @@ export const PaymentPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Testing Instructions Card - Only visible in development/test mode */}
+          {process.env.NODE_ENV !== 'production' && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <Smartphone className="w-4 h-4" />
+                Test Mode Instructions
+              </h4>
+              <div className="space-y-2 text-sm text-blue-800">
+                <p><strong>UPI Payment:</strong> Select UPI → Choose any UPI app → On mock bank page:</p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Click <strong>"Success"</strong> for successful payment</li>
+                  <li>Click <strong>"Failure"</strong> for failed payment</li>
+                </ul>
+                <p className="mt-2"><strong>Card Payment (Alternative):</strong></p>
+                <ul className="list-disc list-inside ml-2 space-y-1">
+                  <li>Card Number: <code className="bg-blue-100 px-1 rounded">4111 1111 1111 1111</code></li>
+                  <li>Expiry: Any future date (e.g., 12/25)</li>
+                  <li>CVV: Any 3 digits (e.g., 123)</li>
+                </ul>
+                <p className="mt-2"><strong>Net Banking (Alternative):</strong> Select any bank → Click "Success" or "Failure" on mock page</p>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="space-y-3">

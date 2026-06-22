@@ -4,6 +4,8 @@ import com.smartrent.connect.smartrentconnect.dto.PropertyResponse;
 import com.smartrent.connect.smartrentconnect.dto.PropertyImageResponse;
 import com.smartrent.connect.smartrentconnect.dto.PropertyDocumentResponse;
 import com.smartrent.connect.smartrentconnect.service.AdminPropertyService;
+import com.smartrent.connect.smartrentconnect.service.EmailService;
+import com.smartrent.connect.smartrentconnect.service.OtpService;
 import com.smartrent.connect.smartrentconnect.enums.PropertyStatus;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.List;
 
 @Slf4j
@@ -24,6 +27,12 @@ public class AdminPropertyController {
 
     @Autowired
     private final AdminPropertyService adminPropertyService;
+
+    @Autowired
+    private final OtpService otpService;
+
+    @Autowired
+    private final EmailService emailService;
 
     @GetMapping("/pending")
     public ResponseEntity<List<PropertyResponse>> getPendingProperties() {
@@ -82,5 +91,65 @@ public class AdminPropertyController {
     public ResponseEntity<List<PropertyDocumentResponse>> getPropertyDocuments(@PathVariable Long propertyId) {
         List<PropertyDocumentResponse> documents = adminPropertyService.getPropertyDocuments(propertyId);
         return ResponseEntity.ok(documents);
+    }
+
+    // =============== OTP VERIFICATION ===============
+    @PostMapping("/{propertyId}/send-otp")
+    public ResponseEntity<Map<String, String>> sendVerificationOtp(@PathVariable Long propertyId) {
+        log.info("Sending verification OTP for property ID: {}", propertyId);
+
+        // Get property details to retrieve owner information
+        PropertyResponse property = adminPropertyService.getPropertyById(propertyId);
+
+        // Generate OTP
+        String otp = otpService.generateOtp();
+
+        // Store OTP with property ID
+        otpService.storeOtp(String.valueOf(propertyId), otp, property.getOwnerEmail());
+
+        // Send OTP to owner's email
+        emailService.sendPropertyVerificationOtp(
+                property.getOwnerEmail(),
+                property.getOwnerName(),
+                property.getTitle(),
+                otp
+        );
+
+        log.info("Verification OTP sent to owner: {} for property: {}", property.getOwnerEmail(), property.getTitle());
+
+        return ResponseEntity.ok(Map.of(
+                "message", "OTP sent successfully to owner's email",
+                "propertyId", String.valueOf(propertyId)
+        ));
+    }
+
+    @PostMapping("/{propertyId}/verify-otp")
+    public ResponseEntity<Map<String, String>> verifyOtpAndApprove(
+            @PathVariable Long propertyId,
+            @RequestBody Map<String, String> request) {
+        String enteredOtp = request.get("otp");
+
+        log.info("Verifying OTP for property ID: {}", propertyId);
+
+        // Verify OTP
+        boolean isValid = otpService.verifyOtp(String.valueOf(propertyId), enteredOtp);
+
+        if (!isValid) {
+            log.warn("Invalid OTP provided for property ID: {}", propertyId);
+            return ResponseEntity.status(400).body(Map.of(
+                    "message", "Invalid or expired OTP"
+            ));
+        }
+
+        // OTP is valid, approve the property
+        PropertyResponse response = adminPropertyService.approveProperty(propertyId);
+
+        log.info("Property approved successfully via OTP verification. Property ID: {}", propertyId);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Property verified and approved successfully",
+                "propertyId", String.valueOf(propertyId),
+                "status", response.getStatus().name()
+        ));
     }
 }

@@ -22,4 +22,9 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     
     @Query("SELECT p FROM Payment p WHERE p.booking.id = :bookingId AND p.paymentStatus = 'SUCCESS'")
     Optional<Payment> findSuccessfulPaymentByBookingId(Long bookingId);
+    
+    List<Payment> findByTenantPropertyHistoryId(Long historyId);
+    
+    @Query("SELECT p FROM Payment p WHERE p.tenantPropertyHistory.id = :historyId AND p.paymentStatus = 'PENDING'")
+    Optional<Payment> findPendingPaymentByTenantPropertyHistoryId(Long historyId);
 }

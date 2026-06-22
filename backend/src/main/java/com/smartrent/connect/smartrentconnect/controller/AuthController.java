@@ -28,12 +28,6 @@ public class AuthController {
         return ResponseEntity.ok(authService.registerOwner(request));
     }
 
-    // =============== REGISTER ADMIN ===============
-    @PostMapping("/register/admin")
-    public ResponseEntity<String> registerAdmin(@Validated @RequestBody AdminRegisterRequest request) {
-        return ResponseEntity.ok(authService.registerAdmin(request));
-    }
-
     // =============== REGISTER WATCHMAN ===============
     @PostMapping("/register/watchman")
     public ResponseEntity<String> registerWatchman(@Validated @RequestBody WatchmanRegisterRequest request) {

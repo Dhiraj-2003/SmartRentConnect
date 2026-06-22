@@ -55,9 +55,6 @@ export const authAPI = {
   registerOwner: (data: any) =>
     api.post('/auth/register/owner', data),
   
-  registerAdmin: (data: any) =>
-    api.post('/auth/register/admin', data),
-  
   registerWatchman: (data: any) =>
     api.post('/auth/register/watchman', data),
 };
@@ -160,25 +157,40 @@ export const adminAPI = {
   
   // Property Media
   getPropertyImages: (id: string) => api.get(`/admin/properties/${id}/images`),
-  
+
   getPropertyDocuments: (id: string) => api.get(`/admin/properties/${id}/documents`),
+
+  // OTP Verification
+  sendPropertyVerificationOtp: (id: string) => api.post(`/admin/properties/${id}/send-otp`),
+  verifyPropertyOtp: (id: string, otp: string) => api.post(`/admin/properties/${id}/verify-otp`, { otp }),
   
   // Revenue Reports
   getRevenueReport: () => api.get('/admin/revenue-report'),
-  
+
+  // User Activity Stats
+  getUserActivityStats: () => api.get('/admin/user-activity-stats'),
+
+  // Property Stats
+  getPropertyStats: () => api.get('/admin/property-stats'),
+
   // Guest Pass Management
   getAllGuestPasses: (params?: {
     page?: number;
     size?: number;
     status?: string;
   }) => api.get('/admin/guest-passes', { params }),
+
+  // Admin Management
+  registerAdmin: (data: any) => api.post('/admin/register-admin', data),
 };
 
 // Enhanced Owner API with new property management
 export const ownerAPI = {
   // Dashboard & Stats
   getDashboard: () => api.get('/owner/dashboard'),
-  getDashboardStats: () => api.get('/owner/dashboard'),
+  getDashboardStats: () => api.get('/owner/dashboard/stats'),
+  getDashboardAnalytics: () => api.get('/owner/dashboard/analytics'),
+  getRevenueData: () => api.get('/owner/revenue'),
   
   // Property Management - New Structure
   getProperties: () => api.get('/owner/property'),
@@ -569,6 +581,19 @@ export const tenantAPI = {
     api.post(`/tenant/payment/cash/${bookingId}`),
   getPaymentStatus: (bookingId: string) => 
     api.get(`/tenant/payment/status/${bookingId}`),
+  
+  // Pending Payments
+  getPendingPayments: () => api.get('/tenant/rent-payments/pending'),
+  
+  // Rent Payments
+  initiateOnlineRentPayment: (historyId: number) => api.post(`/tenant/rent-payments/online/${historyId}`),
+  initiateCashRentPayment: (historyId: number) => api.post(`/tenant/rent-payments/cash/${historyId}`),
+  verifyRentPayment: (razorpayOrderId: string, razorpayPaymentId: string, razorpaySignature: string) =>
+    api.post('/tenant/rent-payments/verify', { razorpayOrderId, razorpayPaymentId, razorpaySignature }),
+  handleRentPaymentFailure: (razorpayOrderId: string, failureReason?: string) =>
+    api.post('/tenant/rent-payments/failure', { razorpayOrderId, failureReason }),
+  getRentPaymentStatus: (historyId: number) => 
+    api.get(`/tenant/rent-payments/status/${historyId}`),
 };
 
 // Owner Complaint API

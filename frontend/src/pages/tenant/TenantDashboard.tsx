@@ -163,7 +163,7 @@ export const TenantDashboard: React.FC = () => {
               <span className="text-sm">Property History</span>
             </Button>
           </Link>
-          <Link to="/payments">
+          <Link to="/tenant/pending-payments">
             <Button variant="outline" className="w-full flex flex-col h-20 space-y-2">
               <CreditCard className="w-5 h-5" />
               <span className="text-sm">Pay Rent</span>

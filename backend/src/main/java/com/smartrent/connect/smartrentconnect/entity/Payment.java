@@ -21,8 +21,12 @@ public class Payment {
     private Long id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false)
+    @JoinColumn(name = "booking_id")
     private Booking booking;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "tenant_property_history_id")
+    private TenantPropertyHistory tenantPropertyHistory;
     
     @Column(name = "amount", nullable = false)
     private Double amount;

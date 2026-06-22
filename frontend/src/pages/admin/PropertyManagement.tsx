@@ -67,6 +67,7 @@ interface Property {
   rejectionReason?: string;
   ownerId: number;
   ownerName: string;
+  ownerEmail: string;
   ownerProfileImage?: string;
   createdAt: string;
   updatedAt: string;
@@ -114,6 +115,10 @@ export const PropertyManagement: React.FC = () => {
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [propertyToReject, setPropertyToReject] = useState<Property | null>(null);
+  const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [propertyToVerify, setPropertyToVerify] = useState<Property | null>(null);
+  const [otpSent, setOtpSent] = useState(false);
 
   // Helper function to construct full image URLs
   const getImageUrl = (url?: string) => {
@@ -230,6 +235,42 @@ export const PropertyManagement: React.FC = () => {
       setIsDialogOpen(false);
     } catch (error: any) {
       toast.error('Failed to approve property');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleSendOtp = async (property: Property) => {
+    try {
+      setActionLoading(property.id);
+      await adminAPI.sendPropertyVerificationOtp(property.id.toString());
+      toast.success('OTP sent successfully to owner\'s email');
+      setPropertyToVerify(property);
+      setOtpInput('');
+      setOtpSent(true);
+      setIsOtpDialogOpen(true);
+    } catch (error: any) {
+      toast.error('Failed to send OTP');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!propertyToVerify || !otpInput) return;
+
+    try {
+      setActionLoading(propertyToVerify.id);
+      await adminAPI.verifyPropertyOtp(propertyToVerify.id.toString(), otpInput);
+      toast.success('Property verified and approved successfully');
+      loadProperties();
+      setIsOtpDialogOpen(false);
+      setIsDialogOpen(false);
+      setOtpInput('');
+      setOtpSent(false);
+      setPropertyToVerify(null);
+    } catch (error: any) {
+      toast.error('Invalid or expired OTP');
     } finally {
       setActionLoading(null);
     }
@@ -778,18 +819,27 @@ export const PropertyManagement: React.FC = () => {
                     <div className="flex items-center space-x-4">
                       {selectedProperty.status === 'PENDING' && (
                         <>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
-                            onClick={() => handleApproveProperty(selectedProperty.id)}
+                            onClick={() => handleSendOtp(selectedProperty)}
                             disabled={actionLoading === selectedProperty.id}
-                            className="text-green-600 border-green-600 hover:bg-green-600/10"
+                            className="text-blue-600 border-blue-600 hover:bg-blue-600/10"
                           >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Approve Property
+                            {actionLoading === selectedProperty.id ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                                Sending OTP...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Verify Property
+                              </>
+                            )}
                           </Button>
-                          <Button 
-                            variant="outline" 
+                          <Button
+                            variant="outline"
                             size="sm"
                             onClick={() => handleRejectProperty(selectedProperty)}
                             disabled={actionLoading === selectedProperty.id}
@@ -905,6 +955,83 @@ export const PropertyManagement: React.FC = () => {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* OTP Verification Dialog */}
+          <Dialog open={isOtpDialogOpen} onOpenChange={setIsOtpDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Property Verification OTP</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="text-sm text-muted-foreground">
+                  {otpSent ? (
+                    <>
+                      <p className="mb-2">A 6-digit OTP has been sent to the owner's email:</p>
+                      <p className="font-medium text-foreground">{propertyToVerify?.ownerEmail}</p>
+                      <p className="mt-2">Please ask the owner to provide the OTP and enter it below to verify the property.</p>
+                    </>
+                  ) : (
+                    <p>Sending OTP to owner...</p>
+                  )}
+                </div>
+                <div>
+                  <Label htmlFor="otp" className="text-sm font-medium">
+                    Enter OTP *
+                  </Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    maxLength={6}
+                    value={otpInput}
+                    onChange={(e) => setOtpInput(e.target.value.replace(/\D/g, ''))}
+                    placeholder="Enter 6-digit OTP"
+                    className="mt-2 text-center text-2xl tracking-widest"
+                    disabled={!otpSent}
+                  />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <p>OTP is valid for 10 minutes</p>
+                  {otpSent && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => handleSendOtp(propertyToVerify!)}
+                      disabled={actionLoading === propertyToVerify?.id}
+                      className="p-0 h-auto"
+                    >
+                      Resend OTP
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsOtpDialogOpen(false);
+                    setOtpInput('');
+                    setOtpSent(false);
+                    setPropertyToVerify(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleVerifyOtp}
+                  disabled={!otpInput || otpInput.length !== 6 || actionLoading === propertyToVerify?.id}
+                >
+                  {actionLoading === propertyToVerify?.id ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    'Verify & Approve'
+                  )}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
     </div>
   );
 };

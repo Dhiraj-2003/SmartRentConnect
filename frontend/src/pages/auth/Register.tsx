@@ -15,12 +15,11 @@ export const Register: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' as 'tenant' | 'owner' | 'admin' | 'watchman',
+    role: '' as 'tenant' | 'owner' | 'watchman',
     phoneNumber: '',
     address: '',
     businessName: '',
     gstNumber: '',
-    designation: '',
     shiftTiming: '',
     assignedBuilding: '',
   });
@@ -129,7 +128,6 @@ export const Register: React.FC = () => {
             <SelectContent>
               <SelectItem value="tenant">Tenant</SelectItem>
               <SelectItem value="owner">Property Owner</SelectItem>
-              <SelectItem value="admin">Admin</SelectItem>
               <SelectItem value="watchman">Watchman</SelectItem>
             </SelectContent>
           </Select>
@@ -190,20 +188,6 @@ export const Register: React.FC = () => {
               />
             </div>
           </>
-        )}
-
-        {formData.role === 'admin' && (
-          <div>
-            <Label htmlFor="designation">Designation (Optional)</Label>
-            <Input
-              id="designation"
-              type="text"
-              value={formData.designation}
-              onChange={(e) => handleChange('designation', e.target.value)}
-              placeholder="Enter your designation"
-              className="mt-1"
-            />
-          </div>
         )}
 
         {formData.role === 'watchman' && (

@@ -27,8 +27,38 @@ import {
 
 interface ReportData {
   revenue: any;
-  userActivity: any;
-  propertyStats: any;
+  userActivity: {
+    newRegistrations: {
+      thisMonth: number;
+      lastMonth: number;
+      growth: number;
+    };
+    activeUsers: {
+      daily: number;
+      weekly: number;
+      monthly: number;
+    };
+    userDistribution: {
+      tenants: number;
+      owners: number;
+      watchmen: number;
+      admins: number;
+      totalUsers: number;
+    };
+  };
+  propertyStats: {
+    totalListings: number;
+    approvedListings: number;
+    pendingApproval: number;
+    rejectedListings: number;
+    averageRent: number;
+    occupancyRate: number;
+    propertyTypeDistribution: {
+      flats: number;
+      pgs: number;
+      total: number;
+    };
+  };
   guestPassStats: any;
 }
 
@@ -44,37 +74,17 @@ export const AdminReports: React.FC = () => {
   const loadReportData = async () => {
     try {
       setLoading(true);
-      const [revenueResponse, guestPassResponse] = await Promise.all([
+      const [revenueResponse, userActivityResponse, propertyStatsResponse, guestPassResponse] = await Promise.all([
         adminAPI.getRevenueReport(),
+        adminAPI.getUserActivityStats(),
+        adminAPI.getPropertyStats(),
         adminAPI.getAllGuestPasses({ page: 0, size: 1000 }),
       ]);
 
-      // Mock additional data - in real app, these would come from specific endpoints
-      const mockUserActivity = {
-        newRegistrations: {
-          thisMonth: 45,
-          lastMonth: 38,
-          growth: 18.4
-        },
-        activeUsers: {
-          daily: 156,
-          weekly: 432,
-          monthly: 1248
-        }
-      };
-
-      const mockPropertyStats = {
-        totalListings: 89,
-        approvedListings: 76,
-        pendingApproval: 13,
-        averageRent: 25000,
-        occupancyRate: 87.5
-      };
-
       setReportData({
         revenue: revenueResponse.data,
-        userActivity: mockUserActivity,
-        propertyStats: mockPropertyStats,
+        userActivity: userActivityResponse.data,
+        propertyStats: propertyStatsResponse.data,
         guestPassStats: guestPassResponse.data
       });
     } catch (error: any) {
@@ -154,10 +164,10 @@ export const AdminReports: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{reportData?.revenue?.totalRevenue?.toLocaleString() || '0'}</div>
+            <div className="text-2xl font-bold">₹{reportData?.revenue?.monthlyRevenue?.toLocaleString() || '0'}</div>
             <div className="flex items-center justify-between mt-2">
               <span className="text-sm text-muted-foreground">This month</span>
-              {getGrowthIndicator(12.5)}
+              {getGrowthIndicator(reportData?.userActivity?.newRegistrations?.growth || 0)}
             </div>
           </CardContent>
         </Card>
@@ -173,7 +183,7 @@ export const AdminReports: React.FC = () => {
             <div className="text-2xl font-bold">{reportData?.userActivity?.activeUsers?.monthly || 0}</div>
             <div className="flex items-center justify-between mt-2">
               <span className="text-sm text-muted-foreground">Monthly active</span>
-              {getGrowthIndicator(8.3)}
+              {getGrowthIndicator(reportData?.userActivity?.newRegistrations?.growth || 0)}
             </div>
           </CardContent>
         </Card>
@@ -189,7 +199,7 @@ export const AdminReports: React.FC = () => {
             <div className="text-2xl font-bold">{reportData?.propertyStats?.totalListings || 0}</div>
             <div className="flex items-center justify-between mt-2">
               <span className="text-sm text-muted-foreground">Total listings</span>
-              {getGrowthIndicator(15.2)}
+              {getGrowthIndicator(reportData?.userActivity?.newRegistrations?.growth || 0)}
             </div>
           </CardContent>
         </Card>
@@ -202,10 +212,10 @@ export const AdminReports: React.FC = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{reportData?.propertyStats?.occupancyRate || 0}%</div>
+            <div className="text-2xl font-bold">{reportData?.propertyStats?.occupancyRate?.toFixed(1) || 0}%</div>
             <div className="flex items-center justify-between mt-2">
               <span className="text-sm text-muted-foreground">Current rate</span>
-              {getGrowthIndicator(3.7)}
+              {getGrowthIndicator(reportData?.userActivity?.newRegistrations?.growth || 0)}
             </div>
           </CardContent>
         </Card>
@@ -299,42 +309,74 @@ export const AdminReports: React.FC = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Tenants</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-2 bg-blue-200 rounded-full">
-                        <div className="w-12 h-2 bg-blue-600 rounded-full"></div>
+                  {reportData?.userActivity?.userDistribution && (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Tenants</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 h-2 bg-blue-200 rounded-full">
+                            <div
+                              className="h-2 bg-blue-600 rounded-full"
+                              style={{
+                                width: `${(reportData.userActivity.userDistribution.tenants / reportData.userActivity.userDistribution.totalUsers) * 100}%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium">
+                            {reportData.userActivity.userDistribution.tenants}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">75%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Owners</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-2 bg-green-200 rounded-full">
-                        <div className="w-4 h-2 bg-green-600 rounded-full"></div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Owners</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 h-2 bg-green-200 rounded-full">
+                            <div
+                              className="h-2 bg-green-600 rounded-full"
+                              style={{
+                                width: `${(reportData.userActivity.userDistribution.owners / reportData.userActivity.userDistribution.totalUsers) * 100}%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium">
+                            {reportData.userActivity.userDistribution.owners}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">20%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Watchmen</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-2 bg-orange-200 rounded-full">
-                        <div className="w-1 h-2 bg-orange-600 rounded-full"></div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Watchmen</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 h-2 bg-orange-200 rounded-full">
+                            <div
+                              className="h-2 bg-orange-600 rounded-full"
+                              style={{
+                                width: `${(reportData.userActivity.userDistribution.watchmen / reportData.userActivity.userDistribution.totalUsers) * 100}%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium">
+                            {reportData.userActivity.userDistribution.watchmen}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">4%</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm">Admins</span>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-16 h-2 bg-red-200 rounded-full">
-                        <div className="w-0.5 h-2 bg-red-600 rounded-full"></div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">Admins</span>
+                        <div className="flex items-center space-x-2">
+                          <div className="w-16 h-2 bg-red-200 rounded-full">
+                            <div
+                              className="h-2 bg-red-600 rounded-full"
+                              style={{
+                                width: `${(reportData.userActivity.userDistribution.admins / reportData.userActivity.userDistribution.totalUsers) * 100}%`
+                              }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium">
+                            {reportData.userActivity.userDistribution.admins}
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-sm font-medium">1%</span>
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -366,7 +408,22 @@ export const AdminReports: React.FC = () => {
                       </p>
                     </div>
                   </div>
-                  
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-4 bg-red-50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Rejected</p>
+                      <p className="text-2xl font-bold text-red-600">
+                        {reportData?.propertyStats?.rejectedListings || 0}
+                      </p>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <p className="text-sm text-muted-foreground">Total</p>
+                      <p className="text-2xl font-bold text-blue-600">
+                        {reportData?.propertyStats?.totalListings || 0}
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="p-4 bg-muted/50 rounded-lg">
                     <p className="text-sm text-muted-foreground mb-2">Average Rent</p>
                     <p className="text-2xl font-bold">
@@ -387,16 +444,36 @@ export const AdminReports: React.FC = () => {
                     <span className="text-sm">Occupancy Rate</span>
                     <div className="flex items-center space-x-2">
                       <div className="w-24 h-2 bg-gray-200 rounded-full">
-                        <div 
-                          className="h-2 bg-green-600 rounded-full" 
+                        <div
+                          className="h-2 bg-green-600 rounded-full"
                           style={{ width: `${reportData?.propertyStats?.occupancyRate || 0}%` }}
                         ></div>
                       </div>
                       <span className="text-sm font-medium">
-                        {reportData?.propertyStats?.occupancyRate || 0}%
+                        {reportData?.propertyStats?.occupancyRate?.toFixed(1) || 0}%
                       </span>
                     </div>
                   </div>
+
+                  {reportData?.propertyStats?.propertyTypeDistribution && (
+                    <div className="pt-4 border-t">
+                      <p className="text-sm font-medium mb-3">Property Type Distribution</p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="text-center p-3 bg-blue-50 rounded-lg">
+                          <p className="text-sm text-muted-foreground">Flats</p>
+                          <p className="text-lg font-bold text-blue-600">
+                            {reportData.propertyStats.propertyTypeDistribution.flats}
+                          </p>
+                        </div>
+                        <div className="text-center p-3 bg-purple-50 rounded-lg">
+                          <p className="text-sm text-muted-foreground">PGs</p>
+                          <p className="text-lg font-bold text-purple-600">
+                            {reportData.propertyStats.propertyTypeDistribution.pgs}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -420,17 +497,21 @@ export const AdminReports: React.FC = () => {
                   </p>
                   <p className="text-xs text-muted-foreground mt-1">Total issued</p>
                 </div>
-                
+
                 <div className="text-center p-4 bg-green-50 rounded-lg">
                   <p className="text-sm text-muted-foreground">Active Sessions</p>
-                  <p className="text-2xl font-bold text-green-600">156</p>
+                  <p className="text-2xl font-bold text-green-600">
+                    {reportData?.userActivity?.activeUsers?.daily || 0}
+                  </p>
                   <p className="text-xs text-muted-foreground mt-1">Current users</p>
                 </div>
-                
+
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-sm text-muted-foreground">API Calls</p>
-                  <p className="text-2xl font-bold text-purple-600">12.4K</p>
-                  <p className="text-xs text-muted-foreground mt-1">Today</p>
+                  <p className="text-sm text-muted-foreground">Total Users</p>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {reportData?.userActivity?.userDistribution?.totalUsers || 0}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">Registered users</p>
                 </div>
               </div>
             </CardContent>

@@ -54,7 +54,7 @@ interface Tenant {
   roomNumber?: string;
   bookingDate: string;
   occupancyStartDate: string;
-  status: 'ACTIVE' | 'RENT_DUE' | 'OVERDUE' | 'PENDING_CASH' | 'UPCOMING' | 'RELEASED';
+  status: 'ACTIVE' | 'RENT_DUE' | 'OVERDUE' | 'PENDING_CASH' | 'PENDING_CASH_RENT' | 'UPCOMING' | 'RELEASED';
   depositAmount: number;
   monthlyRent: number;
   lastPaidDate?: string;
@@ -63,6 +63,19 @@ interface Tenant {
   releaseDate?: string;
   releaseReason?: string;
   emergencyContact?: string;
+  
+  // Payment information for pending cash confirmations
+  paymentMethod?: string;
+  paymentStatus?: string;
+  
+  // Booking information for pending cash confirmations
+  bookingId?: number;
+  bookingStatus?: string;
+  bookingBookingDate?: string;
+  bookingMoveInDate?: string;
+  
+  // TenantPropertyHistory information for rent cash payments
+  historyId?: number;
 }
 
 export const TenantDetailsDrawer: React.FC<TenantDetailsDrawerProps> = ({
@@ -77,6 +90,7 @@ export const TenantDetailsDrawer: React.FC<TenantDetailsDrawerProps> = ({
       'RENT_DUE': { variant: 'secondary', text: 'RENT_DUE' },
       'OVERDUE': { variant: 'destructive', text: 'OVERDUE' },
       'PENDING_CASH': { variant: 'secondary', text: 'PENDING CASH' },
+      'PENDING_CASH_RENT': { variant: 'secondary', text: 'PENDING RENT' },
       'UPCOMING': { variant: 'outline', text: 'UPCOMING' },
       'RELEASED': { variant: 'outline', text: 'RELEASED' }
     };
@@ -355,7 +369,7 @@ export const TenantDetailsDrawer: React.FC<TenantDetailsDrawerProps> = ({
                   </>
                 )}
                 
-                {tenant.status === 'PENDING_CASH' && (
+                {(tenant.status === 'PENDING_CASH' || tenant.status === 'PENDING_CASH_RENT') && (
                   <>
                     <Button onClick={handleConfirmPayment} className="flex-1">
                       <CheckCircle className="h-4 w-4 mr-2" />

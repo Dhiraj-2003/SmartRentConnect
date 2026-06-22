@@ -19,6 +19,7 @@ import { OwnerTenants } from '@/pages/owner/OwnerTenants';
 import { OwnerProfile } from '@/pages/owner/OwnerProfile';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUsers } from '@/pages/admin/AdminUsers';
+import { AdminManagement } from '@/pages/admin/AdminManagement';
 import { PropertyManagement } from '@/pages/admin/PropertyManagement';
 import { AdminReports } from '@/pages/admin/AdminReports';
 import { WatchmanDashboard } from '@/pages/watchman/WatchmanDashboard';
@@ -30,6 +31,8 @@ import { TenantBookings } from '@/pages/tenant/TenantBookings';
 import { Properties } from './pages/tenant/Properties';
 import { TenantComplaints } from '@/components/tenant/TenantComplaints';
 import { TenantHistory } from '@/pages/tenant/TenantHistory';
+import { PendingPayments } from '@/pages/tenant/PendingPayments';
+import { RentPaymentPage } from '@/pages/tenant/RentPaymentPage';
 import { VerifyPass } from '@/pages/watchman/VerifyPass';
 import NotFound from "./pages/NotFound";
 import 'react-toastify/dist/ReactToastify.css';
@@ -137,6 +140,18 @@ const AppContent: React.FC = () => {
         <Route path="/tenant/history" element={
           <ProtectedRoute allowedRoles={['TENANT']}>
             <TenantHistory />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/tenant/pending-payments" element={
+          <ProtectedRoute allowedRoles={['TENANT']}>
+            <PendingPayments />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/tenant/rent-payment" element={
+          <ProtectedRoute allowedRoles={['TENANT']}>
+            <RentPaymentPage />
           </ProtectedRoute>
         } />
         
@@ -303,6 +318,12 @@ const AppContent: React.FC = () => {
         <Route path="/admin/reports" element={
           <ProtectedRoute allowedRoles={['ADMIN']}>
             <AdminReports />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/admin/admin-management" element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminManagement />
           </ProtectedRoute>
         } />
         
