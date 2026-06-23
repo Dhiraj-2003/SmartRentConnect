@@ -25,6 +25,9 @@ public interface EmailService {
     // Welcome email for new users
     void sendWelcomeEmail(String to, String fullName, String role, String username);
 
+    // Welcome email with credentials for users registered by others (Admin, Watchman)
+    void sendWelcomeEmailWithCredentials(String to, String fullName, String role, String username, String password);
+
     // OTP email for property verification
     void sendPropertyVerificationOtp(String to, String ownerName, String propertyTitle, String otp);
 }

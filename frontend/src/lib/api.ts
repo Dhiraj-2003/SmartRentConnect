@@ -315,6 +315,12 @@ export const ownerAPI = {
   getPaymentStatus: () => api.get('/owner/razorpay/status'),
   
   testAuthentication: () => api.get('/owner/razorpay/test-auth'),
+
+  // Watchman Management
+  getWatchmen: () => api.get('/owner/watchmen'),
+  registerWatchman: (data: any) => api.post('/owner/watchmen', data),
+  updateWatchman: (id: number, data: any) => api.put(`/owner/watchmen/${id}`, data),
+  deleteWatchman: (id: number) => api.delete(`/owner/watchmen/${id}`),
 };
 
 // Watchman API

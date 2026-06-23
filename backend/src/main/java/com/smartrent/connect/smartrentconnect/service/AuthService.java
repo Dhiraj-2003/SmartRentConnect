@@ -59,7 +59,7 @@ public class AuthService {
 
         tenantRepository.save(tenant);
 
-        // Send welcome email
+        // Send welcome email (without password since user registered themselves)
         emailService.sendWelcomeEmail(tenant.getEmail(), tenant.getFullName(), "Tenant", tenant.getUsername());
 
         return "Tenant registered successfully!";
@@ -87,7 +87,7 @@ public class AuthService {
 
         ownerRepository.save(owner);
 
-        // Send welcome email
+        // Send welcome email (without password since user registered themselves)
         emailService.sendWelcomeEmail(owner.getEmail(), owner.getFullName(), "Owner", owner.getUsername());
 
         return "Owner registered successfully!";
@@ -111,8 +111,8 @@ public class AuthService {
 
         adminRepository.save(admin);
 
-        // Send welcome email
-        //emailService.sendWelcomeEmail(admin.getEmail(), admin.getFullName(), "Admin", admin.getUsername());
+        // Send welcome email with password (admin is registered by another admin)
+        emailService.sendWelcomeEmailWithCredentials(admin.getEmail(), admin.getEmail(), "Admin", admin.getUsername(), request.getPassword());
 
         return "Admin registered successfully!";
     }
@@ -138,8 +138,8 @@ public class AuthService {
 
         watchmanRepository.save(watchman);
 
-        // Send welcome email
-        emailService.sendWelcomeEmail(watchman.getEmail(), watchman.getFullName(), "Watchman", watchman.getUsername());
+        // Send welcome email with password (watchman is registered by owner)
+        emailService.sendWelcomeEmailWithCredentials(watchman.getEmail(), watchman.getFullName(), "Watchman", watchman.getUsername(), request.getPassword());
 
         return "Watchman registered successfully!";
     }

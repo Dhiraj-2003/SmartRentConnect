@@ -15,13 +15,11 @@ export const Register: React.FC = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: '' as 'tenant' | 'owner' | 'watchman',
+    role: '' as 'tenant' | 'owner',
     phoneNumber: '',
     address: '',
     businessName: '',
     gstNumber: '',
-    shiftTiming: '',
-    assignedBuilding: '',
   });
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
@@ -127,8 +125,7 @@ export const Register: React.FC = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="tenant">Tenant</SelectItem>
-              <SelectItem value="owner">Property Owner</SelectItem>
-              <SelectItem value="watchman">Watchman</SelectItem>
+              <SelectItem value="owner">Owner</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -183,35 +180,6 @@ export const Register: React.FC = () => {
                 value={formData.address}
                 onChange={(e) => handleChange('address', e.target.value)}
                 placeholder="Enter your address"
-                required
-                className="mt-1"
-              />
-            </div>
-          </>
-        )}
-
-        {formData.role === 'watchman' && (
-          <>
-            <div>
-              <Label htmlFor="shiftTiming">Shift Timing</Label>
-              <Select value={formData.shiftTiming} onValueChange={(value) => handleChange('shiftTiming', value)}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Select shift timing" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Day">Day</SelectItem>
-                  <SelectItem value="Night">Night</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="assignedBuilding">Assigned Building</Label>
-              <Input
-                id="assignedBuilding"
-                type="text"
-                value={formData.assignedBuilding}
-                onChange={(e) => handleChange('assignedBuilding', e.target.value)}
-                placeholder="Enter assigned building"
                 required
                 className="mt-1"
               />

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { PropertyCard } from '@/components/tenant/PropertyCard';
 import { Button } from '@/components/ui/enhanced-button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { Search, Filter, MapPin, X, Eye, Bed, Bath, Square, Star, MapPin as MapPinIcon, Users, Calendar, Home, Utensils, Coffee, Users2, Wifi, Tv, Award, CheckCircle, XCircle } from 'lucide-react';
 import { tenantAPI } from '@/lib/api';
@@ -18,7 +19,7 @@ interface Property {
   rating: number;
   ownerName: string;
   image: string;
-  images?: string[]; // Changed to string[] for better type safety
+  images?: string[];
   bedrooms: number;
   bathrooms: number;
   area: number;
@@ -56,7 +57,8 @@ interface Property {
 
 export const Properties: React.FC = () => {
   const navigate = useNavigate();
-  const [properties, setProperties] = useState<Property[]>([]);
+  const [allProperties, setAllProperties] = useState<Property[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [state, setState] = useState('');
@@ -68,7 +70,30 @@ export const Properties: React.FC = () => {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Update active filters
+  useEffect(() => {
+    const filters: string[] = [];
+    if (state) filters.push('state');
+    if (city) filters.push('city');
+    if (pincode) filters.push('pincode');
+    if (minRent) filters.push('minRent');
+    if (maxRent) filters.push('maxRent');
+    if (propertyType && propertyType !== 'all') filters.push('propertyType');
+    setActiveFilters(filters);
+  }, [state, city, pincode, minRent, maxRent, propertyType]);
+
+  // Fetch all properties on mount
   useEffect(() => {
     const fetchAllProperties = async () => {
       try {
@@ -77,7 +102,6 @@ export const Properties: React.FC = () => {
         const response = await tenantAPI.getAllProperties();
         console.log('API response:', response);
         
-        // Add null check for response.data
         if (!response?.data) {
           throw new Error('No data received from API');
         }
@@ -98,7 +122,7 @@ export const Properties: React.FC = () => {
                     property.propertyType === 'PG' ? property.pgDetails?.rooms?.length || 0 : 0,
           bathrooms: property.propertyType === 'FLAT' ? property.flatDetails?.bathrooms || 1 : 
                       property.propertyType === 'PG' ? property.pgDetails?.rooms?.[0]?.bathrooms || 1 : 0,
-          area: 500, // You might want to get this from API
+          area: 500,
           available: property.status === 'APPROVED',
           propertyType: property.propertyType,
           flatDetails: property.flatDetails,
@@ -106,7 +130,8 @@ export const Properties: React.FC = () => {
         }));
         
         console.log('Transformed properties:', transformedProperties);
-        setProperties(transformedProperties);
+        setAllProperties(transformedProperties);
+        setFilteredProperties(transformedProperties);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching properties:', error);
@@ -117,61 +142,71 @@ export const Properties: React.FC = () => {
     fetchAllProperties();
   }, []);
 
-  const handleSearch = async () => {
-    try {
-      setLoading(true);
-      const params: any = {};
-      if (searchQuery) params.search = searchQuery;
-      if (state) params.state = state;
-      if (city) params.city = city;
-      if (pincode) params.pincode = pincode;
-      if (minRent) params.minRent = parseFloat(minRent);
-      if (maxRent) params.maxRent = parseFloat(maxRent);
-      if (propertyType && propertyType !== 'all') params.propertyType = propertyType;
-      
-      const response = await tenantAPI.getProperties(params);
-      
-      // Add null check for response.data
-      if (!response?.data) {
-        throw new Error('No data received from API');
-      }
+  // Filter properties on frontend
+  useEffect(() => {
+    let filtered = allProperties;
 
-      const transformedProperties = (response.data || []).map((property: any) => ({
-        id: property.id?.toString() || '',
-        title: property.title || 'Untitled Property',
-        location: `${property.city || ''}, ${property.state || ''}`,
-        rent: property.propertyType === 'FLAT' 
-          ? property.flatDetails?.rentPerMonth || 0
-          : property.pgDetails?.rooms?.[0]?.pricePerBed || 
-            property.pgDetails?.rooms?.reduce((acc: number, room: any) => acc + (room.pricePerBed || 0), 0) || 0,
-        rating: property.averageRating || 0,
-        ownerName: property.ownerName || 'Unknown Owner',
-        image: property.images && Array.isArray(property.images) && property.images.length > 0 
-          ? property.images[0] 
-          : '/placeholder.svg',
-        images: property.images || [],
-        bedrooms: property.propertyType === 'FLAT' ? property.flatDetails?.totalRooms || 1 : 
-                  property.propertyType === 'PG' ? property.pgDetails?.rooms?.length || 0 : 0,
-        bathrooms: property.propertyType === 'FLAT' ? property.flatDetails?.bathrooms || 1 : 
-                    property.propertyType === 'PG' ? property.pgDetails?.rooms?.[0]?.bathrooms || 1 : 0,
-        area: 500,
-        available: property.status === 'APPROVED',
-        propertyType: property.propertyType,
-        flatDetails: property.flatDetails,
-        pgDetails: property.pgDetails
-      }));
-      
-      setProperties(transformedProperties);
-      setLoading(false);
-    } catch (error) {
-      console.error('Search failed:', error);
-      toast.error('Search failed');
-      setLoading(false);
+    // Filter by search query
+    if (debouncedSearchQuery) {
+      const query = debouncedSearchQuery.toLowerCase();
+      filtered = filtered.filter(property => 
+        property.title.toLowerCase().includes(query) ||
+        property.location.toLowerCase().includes(query) ||
+        property.ownerName.toLowerCase().includes(query)
+      );
     }
+
+    // Filter by state
+    if (state) {
+      filtered = filtered.filter(property => 
+        property.location.toLowerCase().includes(state.toLowerCase())
+      );
+    }
+
+    // Filter by city
+    if (city) {
+      filtered = filtered.filter(property => 
+        property.location.toLowerCase().includes(city.toLowerCase())
+      );
+    }
+
+    // Filter by pincode
+    if (pincode) {
+      filtered = filtered.filter(property => 
+        property.location.toLowerCase().includes(pincode.toLowerCase())
+      );
+    }
+
+    // Filter by property type
+    if (propertyType && propertyType !== 'all') {
+      filtered = filtered.filter(property => property.propertyType === propertyType);
+    }
+
+    // Filter by min rent
+    if (minRent) {
+      filtered = filtered.filter(property => property.rent >= parseFloat(minRent));
+    }
+
+    // Filter by max rent
+    if (maxRent) {
+      filtered = filtered.filter(property => property.rent <= parseFloat(maxRent));
+    }
+
+    setFilteredProperties(filtered);
+  }, [debouncedSearchQuery, state, city, pincode, minRent, maxRent, propertyType, allProperties]);
+
+  const clearFilters = () => {
+    setState('');
+    setCity('');
+    setPincode('');
+    setMinRent('');
+    setMaxRent('');
+    setPropertyType('');
+    setSearchQuery('');
   };
 
   const handleBookProperty = (id: string) => {
-    const property = properties.find(p => p.id === id);
+    const property = filteredProperties.find(p => p.id === id);
     if (property) {
       if (property.propertyType === 'FLAT') {
         navigate(`/book/flat/${id}`, { state: { property } });
@@ -187,7 +222,7 @@ export const Properties: React.FC = () => {
   };
 
   const handleViewDetails = (propertyId: string) => {
-    const property = properties.find(p => p.id === propertyId);
+    const property = filteredProperties.find(p => p.id === propertyId);
     if (property) {
       setSelectedProperty(property);
       setIsDialogOpen(true);
@@ -197,7 +232,6 @@ export const Properties: React.FC = () => {
     }
   };
 
-  // Calculate PG stats
   const getPGStats = (pgDetails?: Property['pgDetails']) => {
     if (!pgDetails?.rooms || pgDetails.rooms.length === 0) { 
       return { totalBeds: 0, availableBeds: 0, sharingTypes: [], minPrice: 0, maxPrice: 0 };
@@ -205,11 +239,7 @@ export const Properties: React.FC = () => {
     
     const totalBeds = pgDetails.rooms.reduce((sum, room) => sum + (room.totalBeds || 0), 0);
     const availableBeds = pgDetails.rooms.reduce((sum, room) => sum + (room.availableBeds || 0), 0);
-    
-    // Get unique sharing types
     const sharingTypes = [...new Set(pgDetails.rooms.map(room => room.sharingType))];
-    
-    // Get price range
     const prices = pgDetails.rooms.map(room => room.pricePerBed || 0).filter(price => price > 0);
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
@@ -228,86 +258,188 @@ export const Properties: React.FC = () => {
       <div className="bg-card rounded-lg shadow-card border border-border p-6 mb-8">
         <div className="flex flex-col space-y-4">
           {/* Basic Search */}
-          <div className="flex gap-4">
-            <div className="flex-1">
+          <div className="flex gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <Input
                 placeholder="Search by location, title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
+                className="w-full pl-10"
               />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            <Button variant="gradient" onClick={handleSearch}>
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            >
-              <Filter className="w-4 h-4 mr-2" />
-              Filters
-            </Button>
+            
+            {/* Modern Filters Button with Popover */}
+            <Popover open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant={activeFilters.length > 0 ? "default" : "outline"}
+                  className="relative"
+                >
+                  <Filter className="w-4 h-4 mr-2" />
+                  Filters
+                  {activeFilters.length > 0 && (
+                    <Badge className="ml-2 h-5 w-5 flex items-center justify-center p-0 bg-primary text-primary-foreground">
+                      {activeFilters.length}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-96 p-4" align="end">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-sm">Advanced Filters</h3>
+                    {activeFilters.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={clearFilters}
+                        className="text-xs h-7"
+                      >
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">State</label>
+                      <Input
+                        placeholder="Enter state"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">City</label>
+                      <Input
+                        placeholder="Enter city"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Pincode</label>
+                      <Input
+                        placeholder="Enter pincode"
+                        value={pincode}
+                        onChange={(e) => setPincode(e.target.value)}
+                        className="h-9"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Property Type</label>
+                      <Select value={propertyType} onValueChange={setPropertyType}>
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="All Types" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">All Types</SelectItem>
+                          <SelectItem value="FLAT">Flat</SelectItem>
+                          <SelectItem value="PG">PG</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Min Rent</label>
+                        <Input
+                          type="number"
+                          placeholder="Min"
+                          value={minRent}
+                          onChange={(e) => setMinRent(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-muted-foreground mb-1.5 block">Max Rent</label>
+                        <Input
+                          type="number"
+                          placeholder="Max"
+                          value={maxRent}
+                          onChange={(e) => setMaxRent(e.target.value)}
+                          className="h-9"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {activeFilters.length > 0 && (
+                    <div className="pt-3 border-t">
+                      <p className="text-xs text-muted-foreground mb-2">Active Filters:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {state && <Badge variant="secondary" className="text-xs">State</Badge>}
+                        {city && <Badge variant="secondary" className="text-xs">City</Badge>}
+                        {pincode && <Badge variant="secondary" className="text-xs">Pincode</Badge>}
+                        {propertyType && propertyType !== 'all' && <Badge variant="secondary" className="text-xs">Type</Badge>}
+                        {minRent && <Badge variant="secondary" className="text-xs">Min Rent</Badge>}
+                        {maxRent && <Badge variant="secondary" className="text-xs">Max Rent</Badge>}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </PopoverContent>
+            </Popover>
           </div>
 
-          {/* Advanced Filters */}
-          {showAdvancedFilters && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-4">
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">State</label>
-                <Input
-                  placeholder="State"
-                  value={state}
-                  onChange={(e) => setState(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">City</label>
-                <Input
-                  placeholder="City"
-                  value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Pincode</label>
-                <Input
-                  placeholder="Pincode"
-                  value={pincode}
-                  onChange={(e) => setPincode(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Property Type</label>
-                <Select value={propertyType} onValueChange={setPropertyType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="FLAT">Flat</SelectItem>
-                    <SelectItem value="PG">PG</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Min Rent</label>
-                <Input
-                  type="number"
-                  placeholder="Min Rent"
-                  value={minRent}
-                  onChange={(e) => setMinRent(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm text-muted-foreground mb-1 block">Max Rent</label>
-                <Input
-                  type="number"
-                  placeholder="Max Rent"
-                  value={maxRent}
-                  onChange={(e) => setMaxRent(e.target.value)}
-                />
-              </div>
+          {/* Active Filters Display */}
+          {activeFilters.length > 0 && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground">Active filters:</span>
+              {state && (
+                <Badge variant="outline" className="gap-1">
+                  State: {state}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setState('')} />
+                </Badge>
+              )}
+              {city && (
+                <Badge variant="outline" className="gap-1">
+                  City: {city}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setCity('')} />
+                </Badge>
+              )}
+              {pincode && (
+                <Badge variant="outline" className="gap-1">
+                  Pincode: {pincode}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setPincode('')} />
+                </Badge>
+              )}
+              {propertyType && propertyType !== 'all' && (
+                <Badge variant="outline" className="gap-1">
+                  Type: {propertyType}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setPropertyType('')} />
+                </Badge>
+              )}
+              {minRent && (
+                <Badge variant="outline" className="gap-1">
+                  Min: ₹{minRent}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setMinRent('')} />
+                </Badge>
+              )}
+              {maxRent && (
+                <Badge variant="outline" className="gap-1">
+                  Max: ₹{maxRent}
+                  <X className="w-3 h-3 cursor-pointer" onClick={() => setMaxRent('')} />
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="h-6 text-xs"
+              >
+                Clear all
+              </Button>
             </div>
           )}
         </div>
@@ -319,14 +451,14 @@ export const Properties: React.FC = () => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           <span className="ml-2">Loading properties...</span>
         </div>
-      ) : properties.length === 0 ? (
+      ) : filteredProperties.length === 0 ? (
         <div className="text-center py-12">
           <p className="text-lg font-medium text-gray-900 mb-2">No Properties Found</p>
           <p className="text-gray-600">Check back later for new listings</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {properties.map((property) => (
+          {filteredProperties.map((property) => (
             <PropertyCard
               key={property.id}
               property={property}
@@ -357,14 +489,12 @@ export const Properties: React.FC = () => {
                   Property Images ({selectedProperty.images?.length || 1})
                 </h3>
                 
-                {/* Main Image Display */}
                 <div className="relative h-64 bg-muted rounded-lg overflow-hidden">
                   <img
                     src={selectedProperty.image}
                     alt={selectedProperty.title}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      // Fallback for broken images
                       (e.target as HTMLImageElement).src = '/placeholder.svg';
                     }}
                   />
@@ -376,7 +506,6 @@ export const Properties: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  {/* Property Type Badge */}
                   <div className="absolute top-3 left-3">
                     <Badge variant="outline" className="bg-white/90 backdrop-blur-sm">
                       {selectedProperty.propertyType === 'FLAT' ? '🏠 Flat' : '🏢 PG'}
@@ -384,7 +513,6 @@ export const Properties: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Image Thumbnails Gallery */}
                 {selectedProperty.images && selectedProperty.images.length > 1 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                     {selectedProperty.images.map((image, index) => (
@@ -398,7 +526,6 @@ export const Properties: React.FC = () => {
                             setSelectedProperty(updatedProperty);
                           }}
                           onError={(e) => {
-                            // Fallback for broken images
                             (e.target as HTMLImageElement).src = '/placeholder.svg';
                           }}
                         />
@@ -421,7 +548,6 @@ export const Properties: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Owner and Availability */}
                 <div className="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-center space-x-2">
                     <Award className="w-5 h-5 text-primary" />
@@ -442,10 +568,8 @@ export const Properties: React.FC = () => {
                   </div>
                 </div>
 
-                {/* FLAT Specific Details */}
                 {selectedProperty.propertyType === 'FLAT' && (
                   <>
-                    {/* Rent Section */}
                     <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">
                       <p className="text-sm text-gray-600 mb-1">Monthly Rent</p>
                       <div className="text-3xl font-bold text-primary">
@@ -454,7 +578,6 @@ export const Properties: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Flat Details Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="bg-blue-50 p-3 rounded-lg text-center">
                         <Home className="w-5 h-5 text-blue-600 mx-auto mb-1" />
@@ -484,7 +607,6 @@ export const Properties: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Furnishing Details */}
                     <div className="border rounded-lg p-4">
                       <h4 className="font-semibold mb-3 flex items-center">
                         <Home className="w-4 h-4 mr-2 text-primary" />
@@ -504,10 +626,8 @@ export const Properties: React.FC = () => {
                   </>
                 )}
 
-                {/* PG Specific Details */}
                 {selectedProperty.propertyType === 'PG' && selectedProperty.pgDetails && (
                   <>
-                    {/* Price Section */}
                     <div className="bg-gradient-to-r from-orange-50 to-red-50 p-4 rounded-lg">
                       <div className="flex justify-between items-center">
                         <div>
@@ -522,7 +642,6 @@ export const Properties: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* PG Basic Info */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="border rounded-lg p-3">
                         <p className="text-xs text-gray-500">Gender Allowed</p>
@@ -550,7 +669,6 @@ export const Properties: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Room Types */}
                     <div className="border rounded-lg p-4">
                       <h4 className="font-semibold mb-3 flex items-center">
                         <Users2 className="w-4 h-4 mr-2 text-primary" />
@@ -558,7 +676,6 @@ export const Properties: React.FC = () => {
                       </h4>
                       <div className="space-y-3">
                         {(() => {
-                          // Deduplicate rooms by sharing type
                           const uniqueSharingTypes = new Map();
                           selectedProperty.pgDetails?.rooms?.forEach(room => {
                             if (!uniqueSharingTypes.has(room.sharingType)) {
@@ -575,7 +692,6 @@ export const Properties: React.FC = () => {
                           });
                           
                           return uniqueRooms.map((room: any) => {
-                            // Calculate total beds and available beds for this sharing type
                             const allRoomsOfType = selectedProperty.pgDetails?.rooms?.filter(
                               r => r.sharingType === room.sharingType
                             ) || [];
@@ -613,7 +729,6 @@ export const Properties: React.FC = () => {
                   </>
                 )}
 
-                {/* Action Buttons */}
                 <div className="flex space-x-4 pt-4 border-t">
                   <Button
                     variant="gradient"
@@ -624,15 +739,6 @@ export const Properties: React.FC = () => {
                     {selectedProperty.available 
                       ? (selectedProperty.propertyType === 'FLAT' ? 'Book This Flat' : 'Book a Bed') 
                       : 'Not Available'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="flex-1"
-                    onClick={() => {
-                      toast.info('Contact owner functionality coming soon!');
-                    }}
-                  >
-                    Contact Owner
                   </Button>
                 </div>
               </div>

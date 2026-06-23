@@ -318,6 +318,19 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    @Override
+    public void sendWelcomeEmailWithCredentials(String to, String fullName, String role, String username, String password) {
+        try {
+            String subject = "Welcome to SmartRentConnect - Your Account is Ready!";
+            String message = buildWelcomeMessageWithCredentials(fullName, role, username, password);
+            sendEmail(to, subject, message);
+            log.info("Welcome email with credentials sent successfully to: {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send welcome email with credentials to: {}. Error: {}", to, e.getMessage(), e);
+            // Don't throw exception - registration should succeed even if email fails
+        }
+    }
+
     private String buildWelcomeMessage(String fullName, String role, String username) {
         StringBuilder message = new StringBuilder();
         message.append("🎉 Welcome to SmartRentConnect, ").append(fullName).append("!\n\n");
@@ -328,6 +341,27 @@ public class EmailServiceImpl implements EmailService {
         message.append("- 🏷️  Role: ").append(role).append("\n\n");
         message.append("**What's Next?**\n");
         message.append("You can now log in to your account using your username and password.\n");
+        message.append("Explore our features and start managing your rental properties with ease.\n\n");
+        message.append("**Need Help?**\n");
+        message.append("If you have any questions or need assistance, feel free to reach out to our support team.\n\n");
+        message.append("Thank you for choosing SmartRentConnect!\n\n");
+        message.append("Best regards,\n");
+        message.append("The SmartRentConnect Team");
+        return message.toString();
+    }
+
+    private String buildWelcomeMessageWithCredentials(String fullName, String role, String username, String password) {
+        StringBuilder message = new StringBuilder();
+        message.append("🎉 Welcome to SmartRentConnect, ").append(fullName).append("!\n\n");
+        message.append("Your account has been successfully created and you are now ready to use our platform.\n\n");
+        message.append("**Account Details:**\n");
+        message.append("- 👤 Email: ").append(fullName).append("\n");
+        message.append("- 🔒 Password: ").append(password).append("\n");
+        message.append("- 🏷️  Role: ").append(role).append("\n\n");
+        message.append("**⚠️ Important Security Notice:**\n");
+        message.append("Please change your password after your first login for security reasons.\n\n");
+        message.append("**What's Next?**\n");
+        message.append("You can now log in to your account using the credentials above.\n");
         message.append("Explore our features and start managing your rental properties with ease.\n\n");
         message.append("**Need Help?**\n");
         message.append("If you have any questions or need assistance, feel free to reach out to our support team.\n\n");

@@ -26,7 +26,8 @@ import {
   AlertTriangle,
   Shield,
   CheckCircle,
-  User
+  User,
+  UserPlus
 } from 'lucide-react';
 
 export const OwnerDashboard: React.FC = () => {
@@ -494,10 +495,10 @@ export const OwnerDashboard: React.FC = () => {
           <Button 
             variant="outline" 
             className="w-full flex flex-col h-20 space-y-2"
-            onClick={() => navigate('/owner/profile')}
+            onClick={() => navigate('/owner/watchmen')}
           >
-            <User className="w-5 h-5" />
-            <span className="text-sm">Profile</span>
+            <UserPlus className="w-5 h-5" />
+            <span className="text-sm">Manage Watchmen</span>
           </Button>
         </div>
       </div>

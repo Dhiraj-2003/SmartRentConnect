@@ -4,6 +4,8 @@ import com.smartrent.connect.smartrentconnect.dto.OwnerDashboardDTO;
 import com.smartrent.connect.smartrentconnect.dto.OwnerProfileResponseDTO;
 import com.smartrent.connect.smartrentconnect.dto.OwnerProfileUpdateDTO;
 import com.smartrent.connect.smartrentconnect.dto.OwnerRevenueDTO;
+import com.smartrent.connect.smartrentconnect.dto.WatchmanRegisterRequest;
+import com.smartrent.connect.smartrentconnect.service.AuthService;
 import com.smartrent.connect.smartrentconnect.service.OwnerDashboardService;
 import com.smartrent.connect.smartrentconnect.service.OwnerService;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ public class OwnerController {
 
     private final OwnerService ownerService;
     private final OwnerDashboardService ownerDashboardService;
+    private final AuthService authService;
 
     // =============== PROFILE MANAGEMENT ===============
     
@@ -128,5 +131,12 @@ public class OwnerController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();
         }
+    }
+
+    // =============== WATCHMAN MANAGEMENT ===============
+
+    @PostMapping("/watchmen")
+    public ResponseEntity<String> registerWatchman(@Validated @RequestBody WatchmanRegisterRequest request) {
+        return ResponseEntity.ok(authService.registerWatchman(request));
     }
 }

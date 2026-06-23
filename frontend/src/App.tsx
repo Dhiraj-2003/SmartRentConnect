@@ -17,6 +17,7 @@ import { OwnerRevenue } from '@/pages/owner/OwnerRevenue';
 import { OwnerComplaints } from '@/pages/owner/OwnerComplaints';
 import { OwnerTenants } from '@/pages/owner/OwnerTenants';
 import { OwnerProfile } from '@/pages/owner/OwnerProfile';
+import { OwnerWatchmanManagement } from '@/pages/owner/OwnerWatchmanManagement';
 import { AdminDashboard } from '@/pages/admin/AdminDashboard';
 import { AdminUsers } from '@/pages/admin/AdminUsers';
 import { AdminManagement } from '@/pages/admin/AdminManagement';
@@ -262,6 +263,12 @@ const AppContent: React.FC = () => {
         <Route path="/owner/profile" element={
           <ProtectedRoute allowedRoles={['OWNER']}>
             <OwnerProfile />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/owner/watchmen" element={
+          <ProtectedRoute allowedRoles={['OWNER']}>
+            <OwnerWatchmanManagement />
           </ProtectedRoute>
         } />
         
